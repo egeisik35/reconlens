@@ -220,6 +220,38 @@ function renderCt(ct) {
   });
 }
 
+function renderTakeover(findings) {
+  const container = document.getElementById("takeover-content");
+  container.innerHTML = "";
+
+  const actionable = (findings || []).filter(f => f.status !== "check_failed");
+
+  if (!actionable.length) {
+    container.innerHTML = `<p style="color:var(--text-dim);font-size:0.82rem">No takeover vulnerabilities detected.</p>`;
+    return;
+  }
+
+  actionable.forEach((f) => {
+    const row = document.createElement("div");
+    row.className = "takeover-row";
+
+    const sevClass = f.severity === "high" ? "sev-high" : f.severity === "medium" ? "sev-medium" : "sev-info";
+    const badge = `<span class="sev-badge ${sevClass}">${escHtml(f.severity.toUpperCase())}</span>`;
+    const cname = f.cname ? `<span class="takeover-cname">${escHtml(f.cname)}</span>` : "";
+    const service = f.service ? `<span class="takeover-service">${escHtml(f.service)}</span>` : "";
+
+    row.innerHTML = `
+      <div class="takeover-header">
+        ${badge}
+        <span class="takeover-sub">${escHtml(f.subdomain)}</span>
+        ${service}
+      </div>
+      ${cname ? `<div class="takeover-detail">CNAME → ${cname}</div>` : ""}
+      <div class="takeover-detail">${escHtml(f.detail)}</div>`;
+    container.appendChild(row);
+  });
+}
+
 function renderErrors(errors) {
   const section = document.getElementById("section-errors");
   if (!Object.keys(errors).length) { hide(section); return; }
@@ -344,6 +376,7 @@ form.addEventListener("submit", async (e) => {
     renderIpReputation(data.ip_reputation || []);
     renderCt(data.ct || {});
     renderHeaders(data.headers || {});
+    renderTakeover(data.takeover || []);
     renderErrors(data.errors || {});
 
     show(results);

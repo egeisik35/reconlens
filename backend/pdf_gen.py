@@ -47,6 +47,7 @@ def build_html(data: dict) -> str:
     tech_stack = data.get("tech_stack", {})
     headers = data.get("headers", {})
     ct = data.get("ct", {})
+    takeover = data.get("takeover", [])
     errors = data.get("errors", {})
 
     # DNS: filter empty record types
@@ -149,6 +150,42 @@ def build_html(data: dict) -> str:
         ct_html = f'<p class="ct-count">{ct_total} subdomain{"s" if ct_total != 1 else ""} discovered via Certificate Transparency logs.</p>{ct_tags}'
     else:
         ct_html = '<p class="ct-count" style="color:#9ca3af;font-style:italic">No subdomains found in CT logs.</p>'
+
+    # Takeover risks section
+    _SEV_COLORS = {"high": "#dc2626", "medium": "#d97706", "info": "#6b7280"}
+    _SEV_BG     = {"high": "#fee2e2", "medium": "#fef9c3", "info": "#f3f4f6"}
+    takeover_html = ""
+    actionable = [f for f in takeover if f["status"] != "check_failed"]
+    if actionable:
+        rows = ""
+        for f in actionable:
+            sev   = f.get("severity", "info")
+            color = _SEV_COLORS.get(sev, "#6b7280")
+            bg    = _SEV_BG.get(sev, "#f3f4f6")
+            badge = f'<span style="background:{bg};border:1px solid {color};color:{color};border-radius:3pt;font-size:7pt;font-weight:700;padding:1pt 5pt">{_esc(sev.upper())}</span>'
+            cname_cell = f'<span style="color:#6b7280;font-size:7.5pt">{_esc(f["cname"])}</span>' if f.get("cname") else '<span style="color:#9ca3af">—</span>'
+            rows += f"""<tr>
+              <td style="padding:4pt 8pt;border-bottom:1px solid #f3f4f6;vertical-align:top">{badge}</td>
+              <td style="padding:4pt 8pt;border-bottom:1px solid #f3f4f6;vertical-align:top;font-weight:600;color:#111827">{_esc(f["subdomain"])}</td>
+              <td style="padding:4pt 8pt;border-bottom:1px solid #f3f4f6;vertical-align:top">{cname_cell}</td>
+              <td style="padding:4pt 8pt;border-bottom:1px solid #f3f4f6;vertical-align:top;color:#6b7280;font-size:7.5pt">{_esc(f["detail"])}</td>
+            </tr>"""
+        takeover_html = f"""<table>
+          <tr style="background:#f9fafb">
+            <th style="padding:4pt 8pt;text-align:left;font-size:7.5pt;color:#6b7280;font-weight:600;width:60pt">Severity</th>
+            <th style="padding:4pt 8pt;text-align:left;font-size:7.5pt;color:#6b7280;font-weight:600">Subdomain</th>
+            <th style="padding:4pt 8pt;text-align:left;font-size:7.5pt;color:#6b7280;font-weight:600">CNAME Target</th>
+            <th style="padding:4pt 8pt;text-align:left;font-size:7.5pt;color:#6b7280;font-weight:600">Detail</th>
+          </tr>{rows}</table>"""
+    else:
+        takeover_html = '<p style="color:#9ca3af;font-style:italic;font-size:8pt">No takeover vulnerabilities detected.</p>'
+
+    takeover_section = f"""<section>
+      <div class="section-header" style="border-left:4px solid #dc2626">
+        <h2>Subdomain Takeover Risks</h2>
+      </div>
+      <div style="padding:6pt 8pt">{takeover_html}</div>
+    </section>"""
 
     errors_section = ""
     if errors:
@@ -409,6 +446,7 @@ def build_html(data: dict) -> str:
     <div style="padding:6pt 8pt">{ct_html}</div>
   </section>
   {_section("HTTP Response Headers", _rows(headers), color="#7e3af2")}
+  {takeover_section}
   {errors_section}
 
   <div class="disclaimer">
