@@ -102,7 +102,7 @@ def _base_html(title: str, body: str, monitor_id: str) -> str:
         <!-- Header -->
         <tr>
           <td style="background:#0d1117;padding:20px 28px">
-            <span style="color:#58a6ff;font-size:18px;font-weight:700">OSINT Aggregator</span>
+            <span style="color:#58a6ff;font-size:18px;font-weight:700">ReconLens</span>
             <span style="color:#8b949e;font-size:11px;margin-left:12px">Domain Monitor</span>
           </td>
         </tr>
@@ -162,7 +162,7 @@ def send_confirmation(domain: str, email: str, monitor_id: str) -> None:
     resend.Emails.send({
         "from":    _FROM,
         "to":      [email],
-        "subject": f"Watching {domain} — OSINT Aggregator",
+        "subject": f"Watching {domain} — ReconLens",
         "html":    html,
     })
     logger.info("Confirmation sent to %s for %s", email, domain)

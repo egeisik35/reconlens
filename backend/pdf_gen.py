@@ -163,7 +163,7 @@ def build_html(data: dict) -> str:
     size: A4;
     margin: 18mm 16mm 18mm 16mm;
     @bottom-center {{
-      content: "OSINT Aggregator — Confidential — Page " counter(page) " of " counter(pages);
+      content: "ReconLens — Confidential — Page " counter(page) " of " counter(pages);
       font-family: 'Courier New', monospace;
       font-size: 8pt;
       color: #6b7280;
@@ -364,7 +364,7 @@ def build_html(data: dict) -> str:
 
   <div class="cover">
     <div class="cover-left">
-      <h1>OSINT Aggregator</h1>
+      <h1>ReconLens</h1>
       <div class="subtitle">Open-Source Intelligence Report</div>
     </div>
     <div class="cover-right">
@@ -412,7 +412,7 @@ def build_html(data: dict) -> str:
   {errors_section}
 
   <div class="disclaimer">
-    This report was generated automatically by OSINT Aggregator using only publicly available data sources.
+    This report was generated automatically by ReconLens using only publicly available data sources.
     All information is provided for informational and defensive security purposes only.
     The operator assumes no liability for misuse of this data.
   </div>
