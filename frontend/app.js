@@ -95,6 +95,61 @@ function renderSsl(ssl) {
   renderTable(tableEl, rows);
 }
 
+const TECH_CATEGORY_LABELS = {
+  cdn:          "CDN",
+  web_server:   "Web Server",
+  cms:          "CMS / Platform",
+  language:     "Language / Runtime",
+  js_framework: "JS Framework",
+  analytics:    "Analytics",
+  waf:          "WAF / Security",
+  hosting:      "Hosting",
+};
+
+const TECH_CATEGORY_COLORS = {
+  cdn:          "tech-cdn",
+  web_server:   "tech-server",
+  cms:          "tech-cms",
+  language:     "tech-lang",
+  js_framework: "tech-js",
+  analytics:    "tech-analytics",
+  waf:          "tech-waf",
+  hosting:      "tech-hosting",
+};
+
+function renderTechStack(tech) {
+  const container = document.getElementById("techstack-content");
+  container.innerHTML = "";
+
+  const entries = Object.entries(tech || {}).filter(([, v]) => Array.isArray(v) && v.length);
+  if (!entries.length) {
+    container.innerHTML = `<p style="color:var(--text-dim);font-size:0.82rem">No technologies detected.</p>`;
+    return;
+  }
+
+  entries.forEach(([cat, techs]) => {
+    const row = document.createElement("div");
+    row.className = "tech-row";
+
+    const label = document.createElement("span");
+    label.className = "tech-label";
+    label.textContent = TECH_CATEGORY_LABELS[cat] || cat;
+
+    const pills = document.createElement("div");
+    pills.className = "tech-pills";
+    techs.forEach((t) => {
+      const span = document.createElement("span");
+      span.className = `tech-pill ${TECH_CATEGORY_COLORS[cat] || "tech-other"}`;
+      span.textContent = t;
+      pills.appendChild(span);
+    });
+
+    row.appendChild(label);
+    row.appendChild(pills);
+    container.appendChild(row);
+  });
+}
+
 function renderIpReputation(ipRep) {
   const container = document.getElementById("iprep-content");
   container.innerHTML = "";
@@ -232,6 +287,7 @@ form.addEventListener("submit", async (e) => {
     renderDns(data.dns || {});
     renderWhois(data.whois || {});
     renderSsl(data.ssl || {});
+    renderTechStack(data.tech_stack || {});
     renderIpReputation(data.ip_reputation || []);
     renderCt(data.ct || {});
     renderHeaders(data.headers || {});

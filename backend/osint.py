@@ -7,6 +7,8 @@ import dns.resolver
 import whois
 import requests
 
+from techstack import fetch_tech_stack
+
 
 # ── SSRF guard ────────────────────────────────────────────────────────────────
 
@@ -228,12 +230,13 @@ def fetch_ct_subdomains(domain: str) -> dict:
 def run_all(domain: str) -> dict:
     errors: dict = {}
 
-    dns_data     = fetch_dns(domain)
-    whois_data   = fetch_whois(domain)
-    ssl_data     = fetch_ssl(domain)
-    headers_data = fetch_headers(domain)
-    ct_data      = fetch_ct_subdomains(domain)
-    ip_rep_data  = fetch_ip_reputation(domain)
+    dns_data       = fetch_dns(domain)
+    whois_data     = fetch_whois(domain)
+    ssl_data       = fetch_ssl(domain)
+    headers_data   = fetch_headers(domain)
+    ct_data        = fetch_ct_subdomains(domain)
+    ip_rep_data    = fetch_ip_reputation(domain)
+    tech_data      = fetch_tech_stack(domain)
 
     if "error" in whois_data:
         errors["whois"] = whois_data.pop("error")
@@ -243,6 +246,8 @@ def run_all(domain: str) -> dict:
         errors["headers"] = headers_data.pop("error")
     if "error" in ct_data:
         errors["ct"] = ct_data.pop("error")
+    if isinstance(tech_data, dict) and "error" in tech_data:
+        errors["tech_stack"] = tech_data.pop("error")
 
     return {
         "domain":        domain,
@@ -250,6 +255,7 @@ def run_all(domain: str) -> dict:
         "whois":         whois_data,
         "ssl":           ssl_data,
         "ip_reputation": ip_rep_data,
+        "tech_stack":    tech_data,
         "headers":       headers_data,
         "ct":            ct_data,
         "errors":        errors,

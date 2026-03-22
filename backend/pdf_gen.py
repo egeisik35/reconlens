@@ -44,6 +44,7 @@ def build_html(data: dict) -> str:
     whois = data.get("whois", {})
     ssl = data.get("ssl", {})
     ip_reputation = data.get("ip_reputation", [])
+    tech_stack = data.get("tech_stack", {})
     headers = data.get("headers", {})
     ct = data.get("ct", {})
     errors = data.get("errors", {})
@@ -73,6 +74,35 @@ def build_html(data: dict) -> str:
     ssl_skip = {"days_remaining", "expired"}
     ssl_filtered = {k: v for k, v in ssl.items() if k not in ssl_skip and v}
     ssl_html = ssl_banner + ("<table>" + _rows(ssl_filtered) + "</table>" if ssl_filtered else "")
+
+    # Tech stack section
+    _TECH_LABELS = {
+        "cdn": "CDN", "web_server": "Web Server", "cms": "CMS / Platform",
+        "language": "Language / Runtime", "js_framework": "JS Framework",
+        "analytics": "Analytics", "waf": "WAF / Security", "hosting": "Hosting",
+    }
+    _TECH_COLORS = {
+        "cdn": "#1d4ed8", "web_server": "#6b7280", "cms": "#7c3aed",
+        "language": "#c2410c", "js_framework": "#0e7490", "analytics": "#15803d",
+        "waf": "#b91c1c", "hosting": "#4338ca",
+    }
+    tech_rows_html = ""
+    for cat, techs in tech_stack.items():
+        if not isinstance(techs, list) or not techs:
+            continue
+        color = _TECH_COLORS.get(cat, "#6b7280")
+        label = _TECH_LABELS.get(cat, cat)
+        pills = " ".join(
+            f'<span class="tech-pill" style="background:{color}18;border:1px solid {color}55;color:{color}">{_esc(t)}</span>'
+            for t in techs
+        )
+        tech_rows_html += f"""
+        <tr>
+          <td class="key">{_esc(label)}</td>
+          <td>{pills}</td>
+        </tr>"""
+    tech_html = f"<table>{tech_rows_html}</table>" if tech_rows_html else \
+        '<p style="color:#9ca3af;font-style:italic;font-size:8pt">No technologies detected.</p>'
 
     # IP reputation section
     _ip_skip = {"ip", "is_proxy", "is_hosting", "is_mobile", "blacklists", "country_code"}
@@ -288,6 +318,16 @@ def build_html(data: dict) -> str:
   .rep-danger  {{ background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }}
   .rep-neutral {{ background: #f3f4f6; border: 1px solid #d1d5db; color: #6b7280; }}
 
+  /* ── Tech stack ── */
+  .tech-pill {{
+    display: inline-block;
+    border-radius: 3pt;
+    font-size: 7.5pt;
+    font-weight: 700;
+    padding: 1pt 5pt;
+    margin: 1pt 2pt 1pt 0;
+  }}
+
   /* ── CT subdomains ── */
   .ct-count {{
     font-size: 8pt;
@@ -348,6 +388,12 @@ def build_html(data: dict) -> str:
       <h2>SSL / TLS Certificate</h2>
     </div>
     {ssl_html}
+  </section>
+  <section>
+    <div class="section-header" style="border-left:4px solid #6d28d9">
+      <h2>Tech Stack Fingerprint</h2>
+    </div>
+    <div style="padding:6pt 8pt">{tech_html}</div>
   </section>
   <section>
     <div class="section-header" style="border-left:4px solid #dc2626">

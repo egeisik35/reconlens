@@ -241,6 +241,44 @@ td:last-child {
 
 .errors-card .card-title { color: var(--error); }
 
+/* Tech Stack Fingerprint */
+.tech-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgba(48,54,61,0.4);
+}
+.tech-row:last-child { border-bottom: none; }
+
+.tech-label {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  min-width: 130px;
+  padding-top: 0.15rem;
+  flex-shrink: 0;
+}
+
+.tech-pills { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+.tech-pill {
+  border-radius: 4px;
+  border-width: 1px;
+  border-style: solid;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+}
+.tech-cdn      { background: rgba(88,166,255,0.12); border-color: rgba(88,166,255,0.35); color: #58a6ff; }
+.tech-server   { background: rgba(139,148,158,0.1); border-color: rgba(139,148,158,0.3); color: #8b949e; }
+.tech-cms      { background: rgba(167,139,250,0.12); border-color: rgba(167,139,250,0.35); color: #a78bfa; }
+.tech-lang     { background: rgba(251,146,60,0.12); border-color: rgba(251,146,60,0.35); color: #fb923c; }
+.tech-js       { background: rgba(34,211,238,0.1);  border-color: rgba(34,211,238,0.3);  color: #22d3ee; }
+.tech-analytics{ background: rgba(74,222,128,0.1);  border-color: rgba(74,222,128,0.3);  color: #4ade80; }
+.tech-waf      { background: rgba(248,81,73,0.1);   border-color: rgba(248,81,73,0.3);   color: #f85149; }
+.tech-hosting  { background: rgba(129,140,248,0.1); border-color: rgba(129,140,248,0.3); color: #818cf8; }
+.tech-other    { background: rgba(139,148,158,0.1); border-color: var(--border); color: var(--text-dim); }
+
 /* IP Reputation */
 .ip-block {
   border: 1px solid var(--border);

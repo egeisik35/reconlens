@@ -74,6 +74,7 @@ class ExportRequest(BaseModel):
     whois: dict = {}
     ssl: dict = {}
     ip_reputation: list = []
+    tech_stack: dict = {}
     headers: dict = {}
     ct: dict = {}
     errors: dict = {}
