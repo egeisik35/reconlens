@@ -207,7 +207,7 @@ def fetch_ct_subdomains(domain: str) -> dict:
     try:
         resp = requests.get(
             f"https://crt.sh/?q=%.{domain}&output=json",
-            timeout=10,
+            timeout=5,
             headers={"User-Agent": "Mozilla/5.0 (OSINT-Aggregator/1.0)"},
         )
         resp.raise_for_status()

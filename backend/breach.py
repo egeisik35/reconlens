@@ -22,7 +22,7 @@ def fetch_breaches(domain: str) -> list[dict]:
     Returns empty list on any error.
     """
     try:
-        time.sleep(1.5)   # respect HIBP rate limit
+        time.sleep(0.5)   # respect HIBP rate limit
         resp = requests.get(
             _HIBP_URL,
             params={"domain": domain},
