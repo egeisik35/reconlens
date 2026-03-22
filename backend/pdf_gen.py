@@ -43,6 +43,7 @@ def build_html(data: dict) -> str:
     dns = data.get("dns", {})
     whois = data.get("whois", {})
     ssl = data.get("ssl", {})
+    ip_reputation = data.get("ip_reputation", [])
     headers = data.get("headers", {})
     ct = data.get("ct", {})
     errors = data.get("errors", {})
@@ -72,6 +73,43 @@ def build_html(data: dict) -> str:
     ssl_skip = {"days_remaining", "expired"}
     ssl_filtered = {k: v for k, v in ssl.items() if k not in ssl_skip and v}
     ssl_html = ssl_banner + ("<table>" + _rows(ssl_filtered) + "</table>" if ssl_filtered else "")
+
+    # IP reputation section
+    _ip_skip = {"ip", "is_proxy", "is_hosting", "is_mobile", "blacklists", "country_code"}
+    ip_blocks_html = ""
+    for host in ip_reputation:
+        ip_addr = _esc(host.get("ip", ""))
+        cc = _esc(host.get("country_code") or "")
+
+        # Reputation badges
+        badges = []
+        if host.get("is_proxy"):
+            badges.append('<span class="rep-badge rep-danger">Proxy / VPN</span>')
+        if host.get("is_hosting"):
+            badges.append('<span class="rep-badge rep-warn">Hosting / DC</span>')
+        if not host.get("is_proxy") and not host.get("is_hosting"):
+            badges.append('<span class="rep-badge rep-ok">Residential / ISP</span>')
+        for bl_name, bl_status in (host.get("blacklists") or {}).items():
+            cls = "rep-danger" if bl_status == "listed" else "rep-ok" if bl_status == "clean" else "rep-neutral"
+            badges.append(f'<span class="rep-badge {cls}">{_esc(bl_name)}: {_esc(bl_status)}</span>')
+
+        geo_rows = "".join(
+            f"<tr><td class='key'>{_esc(k)}</td><td><span class='val'>{_esc(str(v))}</span></td></tr>"
+            for k, v in host.items()
+            if k not in _ip_skip and v not in (None, "", False)
+        )
+        ip_blocks_html += f"""
+        <div class="ip-block">
+          <div class="ip-header">
+            <span class="ip-addr">{ip_addr}</span>
+            {"" if not cc else f'<span class="ip-cc">{cc}</span>'}
+            <span class="ip-badges">{"".join(badges)}</span>
+          </div>
+          <table>{geo_rows}</table>
+        </div>"""
+
+    if not ip_blocks_html:
+        ip_blocks_html = '<p style="color:#9ca3af;font-style:italic;font-size:8pt">No IP data collected.</p>'
 
     # CT subdomains section
     ct_subdomains = ct.get("subdomains", [])
@@ -225,6 +263,31 @@ def build_html(data: dict) -> str:
     margin: 1pt 2pt 1pt 0;
   }}
 
+  /* ── IP Reputation ── */
+  .ip-block {{
+    border: 1px solid #e5e7eb;
+    border-radius: 4pt;
+    margin-bottom: 8pt;
+    overflow: hidden;
+  }}
+  .ip-header {{
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 4pt 8pt;
+    display: flex;
+    align-items: center;
+    gap: 6pt;
+    flex-wrap: wrap;
+  }}
+  .ip-addr  {{ font-weight: 700; color: #1a56db; font-size: 9pt; }}
+  .ip-cc    {{ background: #e5e7eb; border-radius: 2pt; color: #6b7280; font-size: 7pt; font-weight: 700; padding: 1pt 4pt; }}
+  .ip-badges {{ display: flex; gap: 3pt; flex-wrap: wrap; }}
+  .rep-badge {{ border-radius: 3pt; font-size: 7pt; font-weight: 700; padding: 1pt 5pt; }}
+  .rep-ok      {{ background: #dcfce7; border: 1px solid #86efac; color: #166534; }}
+  .rep-warn    {{ background: #fef9c3; border: 1px solid #fde047; color: #854d0e; }}
+  .rep-danger  {{ background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }}
+  .rep-neutral {{ background: #f3f4f6; border: 1px solid #d1d5db; color: #6b7280; }}
+
   /* ── CT subdomains ── */
   .ct-count {{
     font-size: 8pt;
@@ -286,6 +349,13 @@ def build_html(data: dict) -> str:
     </div>
     {ssl_html}
   </section>
+  <section>
+    <div class="section-header" style="border-left:4px solid #dc2626">
+      <h2>IP Reputation &amp; Geolocation</h2>
+    </div>
+    <div style="padding:6pt 8pt">{ip_blocks_html}</div>
+  </section>
+
   <section>
     <div class="section-header" style="border-left:4px solid #0891b2">
       <h2>Certificate Transparency — Subdomains</h2>

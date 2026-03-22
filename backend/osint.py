@@ -121,6 +121,79 @@ def fetch_headers(domain: str) -> dict:
     return {"error": "Could not reach host"}
 
 
+_DNSBLS = ["zen.spamhaus.org", "bl.spamcop.net"]
+
+
+def _fetch_geo(ip: str) -> dict:
+    """Query ip-api.com (free tier, no key) for geolocation and network info."""
+    try:
+        fields = "status,country,countryCode,regionName,city,isp,org,as,proxy,hosting,mobile"
+        resp = requests.get(
+            f"http://ip-api.com/json/{ip}?fields={fields}",
+            timeout=6,
+            headers={"User-Agent": "Mozilla/5.0 (OSINT-Aggregator/1.0)"},
+        )
+        data = resp.json()
+        if data.get("status") != "success":
+            return {}
+        return {
+            "country":     data.get("country"),
+            "country_code": data.get("countryCode"),
+            "region":      data.get("regionName"),
+            "city":        data.get("city"),
+            "isp":         data.get("isp"),
+            "org":         data.get("org"),
+            "asn":         data.get("as"),
+            "is_proxy":    data.get("proxy", False),
+            "is_hosting":  data.get("hosting", False),
+            "is_mobile":   data.get("mobile", False),
+        }
+    except Exception:
+        return {}
+
+
+def _check_dnsbl(ip: str) -> dict:
+    """
+    Check an IP against DNS-based blacklists (DNSBLs) using reverse-IP
+    lookups. Returns a dict of {blacklist: 'listed' | 'clean' | 'error'}.
+    """
+    try:
+        reversed_ip = ".".join(reversed(ip.split(".")))
+    except Exception:
+        return {}
+
+    results = {}
+    for bl in _DNSBLS:
+        try:
+            dns.resolver.resolve(f"{reversed_ip}.{bl}", "A")
+            results[bl] = "listed"
+        except dns.resolver.NXDOMAIN:
+            results[bl] = "clean"
+        except Exception:
+            results[bl] = "error"
+    return results
+
+
+def fetch_ip_reputation(domain: str) -> list:
+    """
+    Resolve the domain's A records, then for each IP fetch geolocation
+    data and DNSBL reputation. Returns a list of per-IP result dicts.
+    """
+    try:
+        answers = dns.resolver.resolve(domain, "A")
+        ips = [str(r) for r in answers][:3]   # cap at 3 IPs
+    except Exception:
+        return []
+
+    results = []
+    for ip in ips:
+        geo = _fetch_geo(ip)
+        blacklists = _check_dnsbl(ip)
+        entry: dict = {"ip": ip, **geo, "blacklists": blacklists}
+        results.append(entry)
+    return results
+
+
 def fetch_ct_subdomains(domain: str) -> dict:
     """
     Query the crt.sh Certificate Transparency log aggregator for all certs
@@ -160,6 +233,7 @@ def run_all(domain: str) -> dict:
     ssl_data     = fetch_ssl(domain)
     headers_data = fetch_headers(domain)
     ct_data      = fetch_ct_subdomains(domain)
+    ip_rep_data  = fetch_ip_reputation(domain)
 
     if "error" in whois_data:
         errors["whois"] = whois_data.pop("error")
@@ -171,11 +245,12 @@ def run_all(domain: str) -> dict:
         errors["ct"] = ct_data.pop("error")
 
     return {
-        "domain":  domain,
-        "dns":     dns_data,
-        "whois":   whois_data,
-        "ssl":     ssl_data,
-        "headers": headers_data,
-        "ct":      ct_data,
-        "errors":  errors,
+        "domain":        domain,
+        "dns":           dns_data,
+        "whois":         whois_data,
+        "ssl":           ssl_data,
+        "ip_reputation": ip_rep_data,
+        "headers":       headers_data,
+        "ct":            ct_data,
+        "errors":        errors,
     }

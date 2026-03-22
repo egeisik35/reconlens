@@ -95,6 +95,51 @@ function renderSsl(ssl) {
   renderTable(tableEl, rows);
 }
 
+function renderIpReputation(ipRep) {
+  const container = document.getElementById("iprep-content");
+  container.innerHTML = "";
+
+  if (!ipRep || !ipRep.length) {
+    container.innerHTML = `<p style="color:var(--text-dim);font-size:0.82rem">No IP data available.</p>`;
+    return;
+  }
+
+  ipRep.forEach((host) => {
+    const block = document.createElement("div");
+    block.className = "ip-block";
+
+    // Reputation badges
+    const badges = [];
+    if (host.is_proxy)   badges.push(`<span class="rep-badge rep-danger">Proxy / VPN</span>`);
+    if (host.is_hosting) badges.push(`<span class="rep-badge rep-warn">Hosting / DC</span>`);
+    if (!host.is_proxy && !host.is_hosting)
+                         badges.push(`<span class="rep-badge rep-ok">Residential / ISP</span>`);
+
+    // DNSBL badges
+    const bl = host.blacklists || {};
+    Object.entries(bl).forEach(([name, status]) => {
+      const cls = status === "listed" ? "rep-danger" : status === "clean" ? "rep-ok" : "rep-neutral";
+      badges.push(`<span class="rep-badge ${cls}">${escHtml(name)}: ${escHtml(status)}</span>`);
+    });
+
+    // Geo rows (skip internal flags shown as badges)
+    const skipKeys = new Set(["ip","is_proxy","is_hosting","is_mobile","blacklists","country_code"]);
+    const rows = Object.entries(host)
+      .filter(([k, v]) => !skipKeys.has(k) && v != null && v !== "" && v !== false)
+      .map(([k, v]) => `<tr><td>${escHtml(k)}</td><td>${escHtml(String(v))}</td></tr>`)
+      .join("");
+
+    block.innerHTML = `
+      <div class="ip-header">
+        <span class="ip-address">${escHtml(host.ip)}</span>
+        <span class="ip-country">${host.country_code ? escHtml(host.country_code) : ""}</span>
+        <div class="ip-badges">${badges.join("")}</div>
+      </div>
+      <table class="ip-table">${rows}</table>`;
+    container.appendChild(block);
+  });
+}
+
 function renderCt(ct) {
   const summary = document.getElementById("ct-summary");
   const tagsEl  = document.getElementById("ct-tags");
@@ -187,6 +232,7 @@ form.addEventListener("submit", async (e) => {
     renderDns(data.dns || {});
     renderWhois(data.whois || {});
     renderSsl(data.ssl || {});
+    renderIpReputation(data.ip_reputation || []);
     renderCt(data.ct || {});
     renderHeaders(data.headers || {});
     renderErrors(data.errors || {});

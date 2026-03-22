@@ -241,6 +241,58 @@ td:last-child {
 
 .errors-card .card-title { color: var(--error); }
 
+/* IP Reputation */
+.ip-block {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 0.8rem;
+  overflow: hidden;
+}
+.ip-block:last-child { margin-bottom: 0; }
+
+.ip-header {
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.ip-address {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.ip-country {
+  background: var(--border);
+  border-radius: 3px;
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+}
+
+.ip-badges { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+.rep-badge {
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+}
+.rep-ok      { background: rgba(63,185,80,0.12);  border: 1px solid rgba(63,185,80,0.3);  color: #3fb950; }
+.rep-warn    { background: rgba(210,153,34,0.12); border: 1px solid rgba(210,153,34,0.3); color: #d29922; }
+.rep-danger  { background: rgba(248,81,73,0.15);  border: 1px solid rgba(248,81,73,0.35); color: #f85149; }
+.rep-neutral { background: rgba(139,148,158,0.1); border: 1px solid var(--border);        color: var(--text-dim); }
+
+.ip-table { margin: 0; }
+.ip-table td { font-size: 0.8rem; padding: 0.28rem 0.75rem; }
+.ip-table td:first-child { color: var(--text-dim); width: 140px; }
+
 /* CT subdomain section */
 .ct-summary {
   color: var(--text-dim);
