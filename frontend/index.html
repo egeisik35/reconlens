@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OSINT Aggregator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>OSINT Aggregator</h1>
+      <p class="subtitle">Public intelligence for any domain</p>
+    </header>
+
+    <form id="lookup-form">
+      <div class="input-row">
+        <input
+          id="domain-input"
+          type="text"
+          placeholder="example.com"
+          autocomplete="off"
+          spellcheck="false"
+          required
+        />
+        <button type="submit" id="submit-btn">Lookup</button>
+      </div>
+      <p id="error-msg" class="error hidden"></p>
+    </form>
+
+    <div id="loader" class="loader hidden">
+      <span class="spinner"></span> Fetching intelligence&hellip;
+    </div>
+
+    <div id="results" class="hidden">
+      <div class="result-header">
+        <span id="result-domain"></span>
+        <button id="export-btn" class="export-btn">&#8659; Export Professional PDF</button>
+      </div>
+
+      <section class="card" id="section-dns">
+        <h2 class="card-title" data-target="dns-body">DNS Records <span class="chevron">&#9660;</span></h2>
+        <div id="dns-body" class="card-body">
+          <table id="dns-table"></table>
+        </div>
+      </section>
+
+      <section class="card" id="section-whois">
+        <h2 class="card-title" data-target="whois-body">WHOIS Data <span class="chevron">&#9660;</span></h2>
+        <div id="whois-body" class="card-body">
+          <table id="whois-table"></table>
+        </div>
+      </section>
+
+      <section class="card" id="section-headers">
+        <h2 class="card-title" data-target="headers-body">HTTP Headers <span class="chevron">&#9660;</span></h2>
+        <div id="headers-body" class="card-body">
+          <table id="headers-table"></table>
+        </div>
+      </section>
+
+      <section class="card errors-card hidden" id="section-errors">
+        <h2 class="card-title" data-target="errors-body">Errors <span class="chevron">&#9660;</span></h2>
+        <div id="errors-body" class="card-body">
+          <table id="errors-table"></table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
