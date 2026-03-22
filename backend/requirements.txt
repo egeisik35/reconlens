@@ -4,3 +4,4 @@ dnspython==2.6.1
 python-whois==0.9.4
 requests==2.32.3
 weasyprint==68.1
+slowapi==0.1.9

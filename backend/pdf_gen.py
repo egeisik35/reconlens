@@ -44,6 +44,7 @@ def build_html(data: dict) -> str:
     whois = data.get("whois", {})
     ssl = data.get("ssl", {})
     headers = data.get("headers", {})
+    ct = data.get("ct", {})
     errors = data.get("errors", {})
 
     # DNS: filter empty record types
@@ -71,6 +72,15 @@ def build_html(data: dict) -> str:
     ssl_skip = {"days_remaining", "expired"}
     ssl_filtered = {k: v for k, v in ssl.items() if k not in ssl_skip and v}
     ssl_html = ssl_banner + ("<table>" + _rows(ssl_filtered) + "</table>" if ssl_filtered else "")
+
+    # CT subdomains section
+    ct_subdomains = ct.get("subdomains", [])
+    ct_total = ct.get("total", 0)
+    if ct_subdomains:
+        ct_tags = " ".join(f'<span class="tag">{_esc(s)}</span>' for s in ct_subdomains)
+        ct_html = f'<p class="ct-count">{ct_total} subdomain{"s" if ct_total != 1 else ""} discovered via Certificate Transparency logs.</p>{ct_tags}'
+    else:
+        ct_html = '<p class="ct-count" style="color:#9ca3af;font-style:italic">No subdomains found in CT logs.</p>'
 
     errors_section = ""
     if errors:
@@ -215,6 +225,13 @@ def build_html(data: dict) -> str:
     margin: 1pt 2pt 1pt 0;
   }}
 
+  /* ── CT subdomains ── */
+  .ct-count {{
+    font-size: 8pt;
+    color: #6b7280;
+    margin-bottom: 5pt;
+  }}
+
   /* ── SSL badges ── */
   .ssl-badge {{
     display: inline-block;
@@ -268,6 +285,12 @@ def build_html(data: dict) -> str:
       <h2>SSL / TLS Certificate</h2>
     </div>
     {ssl_html}
+  </section>
+  <section>
+    <div class="section-header" style="border-left:4px solid #0891b2">
+      <h2>Certificate Transparency — Subdomains</h2>
+    </div>
+    <div style="padding:6pt 8pt">{ct_html}</div>
   </section>
   {_section("HTTP Response Headers", _rows(headers), color="#7e3af2")}
   {errors_section}

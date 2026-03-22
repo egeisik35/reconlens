@@ -95,6 +95,27 @@ function renderSsl(ssl) {
   renderTable(tableEl, rows);
 }
 
+function renderCt(ct) {
+  const summary = document.getElementById("ct-summary");
+  const tagsEl  = document.getElementById("ct-tags");
+  tagsEl.innerHTML = "";
+
+  if (!ct || (!ct.subdomains && !ct.total)) {
+    summary.textContent = "No Certificate Transparency data available.";
+    return;
+  }
+
+  const total = ct.total ?? 0;
+  summary.textContent = `${total} unique subdomain${total !== 1 ? "s" : ""} discovered via CT logs.`;
+
+  (ct.subdomains || []).forEach((sub) => {
+    const span = document.createElement("span");
+    span.className = "tag";
+    span.textContent = sub;
+    tagsEl.appendChild(span);
+  });
+}
+
 function renderErrors(errors) {
   const section = document.getElementById("section-errors");
   if (!Object.keys(errors).length) { hide(section); return; }
@@ -166,6 +187,7 @@ form.addEventListener("submit", async (e) => {
     renderDns(data.dns || {});
     renderWhois(data.whois || {});
     renderSsl(data.ssl || {});
+    renderCt(data.ct || {});
     renderHeaders(data.headers || {});
     renderErrors(data.errors || {});
 

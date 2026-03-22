@@ -241,6 +241,19 @@ td:last-child {
 
 .errors-card .card-title { color: var(--error); }
 
+/* CT subdomain section */
+.ct-summary {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  margin-bottom: 0.6rem;
+}
+
+#ct-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
 /* SSL expiry banner */
 .ssl-banner {
   border-radius: 5px;
