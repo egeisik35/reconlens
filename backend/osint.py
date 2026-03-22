@@ -9,6 +9,7 @@ import requests
 
 from techstack import fetch_tech_stack
 from takeover import check_takeovers
+from breach import fetch_breaches
 
 
 # ── SSRF guard ────────────────────────────────────────────────────────────────
@@ -241,6 +242,7 @@ def run_all(domain: str) -> dict:
 
     subdomains     = ct_data.get("subdomains", []) if isinstance(ct_data, dict) else []
     takeover_data  = check_takeovers(subdomains)
+    breach_data    = fetch_breaches(domain)
 
     if "error" in whois_data:
         errors["whois"] = whois_data.pop("error")
@@ -263,5 +265,6 @@ def run_all(domain: str) -> dict:
         "headers":       headers_data,
         "ct":            ct_data,
         "takeover":      takeover_data,
+        "breaches":      breach_data,
         "errors":        errors,
     }

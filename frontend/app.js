@@ -220,6 +220,48 @@ function renderCt(ct) {
   });
 }
 
+function renderBreaches(breaches) {
+  const container = document.getElementById("breaches-content");
+  container.innerHTML = "";
+
+  if (!breaches || !breaches.length) {
+    container.innerHTML = `<p style="color:var(--text-dim);font-size:0.82rem">No known breaches found for this domain.</p>`;
+    return;
+  }
+
+  const totalRecords = breaches.reduce((s, b) => s + (b.pwn_count || 0), 0);
+  const summary = document.createElement("div");
+  summary.className = "breach-summary";
+  summary.innerHTML = `<span class="breach-count">${breaches.length} breach${breaches.length !== 1 ? "es" : ""} found</span> — <span class="breach-total">${totalRecords.toLocaleString()} total records exposed</span>`;
+  container.appendChild(summary);
+
+  breaches.forEach((b) => {
+    const card = document.createElement("div");
+    card.className = "breach-card";
+
+    const count = b.pwn_count ? b.pwn_count.toLocaleString() : "?";
+    const countClass = b.pwn_count > 1_000_000 ? "breach-count-high" : b.pwn_count > 100_000 ? "breach-count-med" : "breach-count-low";
+
+    const badges = [];
+    if (!b.is_verified) badges.push(`<span class="breach-badge badge-unverified">Unverified</span>`);
+    if (b.is_sensitive) badges.push(`<span class="breach-badge badge-sensitive">Sensitive</span>`);
+
+    const pills = (b.data_classes || []).map(d =>
+      `<span class="breach-pill">${escHtml(d)}</span>`
+    ).join("");
+
+    card.innerHTML = `
+      <div class="breach-header">
+        <span class="breach-name">${escHtml(b.name)}</span>
+        <span class="${countClass}">${count} records</span>
+        <span class="breach-date">${escHtml(b.breach_date || "")}</span>
+        ${badges.join("")}
+      </div>
+      ${pills ? `<div class="breach-pills">${pills}</div>` : ""}`;
+    container.appendChild(card);
+  });
+}
+
 function renderTakeover(findings) {
   const container = document.getElementById("takeover-content");
   container.innerHTML = "";
@@ -376,6 +418,7 @@ form.addEventListener("submit", async (e) => {
     renderIpReputation(data.ip_reputation || []);
     renderCt(data.ct || {});
     renderHeaders(data.headers || {});
+    renderBreaches(data.breaches || []);
     renderTakeover(data.takeover || []);
     renderErrors(data.errors || {});
 

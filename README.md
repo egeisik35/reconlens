@@ -19,6 +19,7 @@ Passive reconnaissance for any domain — DNS, WHOIS, SSL, tech stack, IP reputa
 | **IP Reputation** | Geolocation, ISP, ASN, proxy/VPN/hosting flags, Spamhaus + SpamCop DNSBL |
 | **Certificate Transparency** | All subdomains ever issued a cert via crt.sh |
 | **Takeover Detection** | Checks CT subdomains for dangling DNS and unclaimed services (GitHub Pages, S3, Heroku, Netlify, Azure, 10+ more) |
+| **Breach Intelligence** | Checks if the domain has appeared in known data breaches via HaveIBeenPwned — shows breach name, date, record count, and exposed data types |
 | **HTTP Headers** | Full response header set |
 | **PDF Export** | Branded A4 report with expiry banners, tech badges, page numbers |
 | **Domain Monitoring** | 24h checks — email alerts on DNS changes, new subdomains, SSL expiry, tech stack changes |

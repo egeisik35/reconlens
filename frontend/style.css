@@ -58,6 +58,49 @@ header h1 {
 }
 .github-link:hover { color: var(--text); }
 
+/* Breach intelligence */
+.breach-summary {
+  font-size: 0.82rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-dim);
+}
+.breach-count  { color: #f85149; font-weight: 700; }
+.breach-total  { color: var(--text); }
+
+.breach-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 0.5rem;
+  background: var(--surface);
+}
+.breach-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.3rem;
+}
+.breach-name       { font-weight: 700; color: var(--text); font-size: 0.85rem; }
+.breach-date       { font-size: 0.75rem; color: var(--text-dim); margin-left: auto; }
+.breach-count-high { font-size: 0.78rem; color: #f85149; font-weight: 700; }
+.breach-count-med  { font-size: 0.78rem; color: #e3b341; font-weight: 700; }
+.breach-count-low  { font-size: 0.78rem; color: var(--text-dim); }
+
+.breach-badge        { font-size: 0.68rem; font-weight: 700; padding: 1px 5px; border-radius: 4px; }
+.badge-unverified    { background: #1c2128; color: var(--text-dim); border: 1px solid var(--border); }
+.badge-sensitive     { background: #2d2208; color: #e3b341; border: 1px solid #5a4010; }
+
+.breach-pills { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.25rem; }
+.breach-pill  {
+  font-size: 0.72rem;
+  background: #0d1f3c;
+  border: 1px solid #1d4ed8;
+  color: #58a6ff;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
 /* Takeover risks */
 .takeover-row {
   border: 1px solid var(--border);

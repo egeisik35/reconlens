@@ -48,6 +48,7 @@ def build_html(data: dict) -> str:
     headers = data.get("headers", {})
     ct = data.get("ct", {})
     takeover = data.get("takeover", [])
+    breaches = data.get("breaches", [])
     errors = data.get("errors", {})
 
     # DNS: filter empty record types
@@ -185,6 +186,46 @@ def build_html(data: dict) -> str:
         <h2>Subdomain Takeover Risks</h2>
       </div>
       <div style="padding:6pt 8pt">{takeover_html}</div>
+    </section>"""
+
+    # Breach intelligence section
+    if breaches:
+        total_records = sum(b.get("pwn_count", 0) for b in breaches)
+        breach_rows = ""
+        for b in breaches:
+            count     = f"{b['pwn_count']:,}" if b.get("pwn_count") else "?"
+            verified  = "" if b.get("is_verified") else '<span style="background:#f3f4f6;border:1px solid #d1d5db;color:#6b7280;border-radius:3pt;font-size:6.5pt;font-weight:700;padding:1pt 4pt;margin-left:4pt">UNVERIFIED</span>'
+            sensitive = '<span style="background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:3pt;font-size:6.5pt;font-weight:700;padding:1pt 4pt;margin-left:4pt">SENSITIVE</span>' if b.get("is_sensitive") else ""
+            pills     = " ".join(f'<span style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:3pt;font-size:6.5pt;padding:1pt 4pt">{_esc(d)}</span>' for d in b.get("data_classes", []))
+            pwn_color = "#dc2626" if b.get("pwn_count", 0) > 1_000_000 else "#d97706" if b.get("pwn_count", 0) > 100_000 else "#374151"
+            breach_rows += f"""<tr>
+              <td style="padding:5pt 8pt;border-bottom:1px solid #f3f4f6;vertical-align:top;white-space:nowrap">
+                <span style="font-weight:700;color:#111827">{_esc(b['name'])}</span>{verified}{sensitive}
+              </td>
+              <td style="padding:5pt 8pt;border-bottom:1px solid #f3f4f6;vertical-align:top;white-space:nowrap;color:{pwn_color};font-weight:600">{count}</td>
+              <td style="padding:5pt 8pt;border-bottom:1px solid #f3f4f6;vertical-align:top;white-space:nowrap;color:#6b7280">{_esc(b.get('breach_date',''))}</td>
+              <td style="padding:5pt 8pt;border-bottom:1px solid #f3f4f6;vertical-align:top">{pills}</td>
+            </tr>"""
+        breach_html = f"""
+        <p style="font-size:8pt;color:#dc2626;font-weight:700;margin-bottom:6pt">
+          {len(breaches)} breach{"es" if len(breaches)!=1 else ""} found — {total_records:,} total records exposed
+        </p>
+        <table>
+          <tr style="background:#f9fafb">
+            <th style="padding:4pt 8pt;text-align:left;font-size:7.5pt;color:#6b7280;font-weight:600">Breach</th>
+            <th style="padding:4pt 8pt;text-align:left;font-size:7.5pt;color:#6b7280;font-weight:600">Records</th>
+            <th style="padding:4pt 8pt;text-align:left;font-size:7.5pt;color:#6b7280;font-weight:600">Date</th>
+            <th style="padding:4pt 8pt;text-align:left;font-size:7.5pt;color:#6b7280;font-weight:600">Data Exposed</th>
+          </tr>{breach_rows}
+        </table>"""
+    else:
+        breach_html = '<p style="color:#9ca3af;font-style:italic;font-size:8pt">No known breaches found for this domain.</p>'
+
+    breach_section = f"""<section>
+      <div class="section-header" style="border-left:4px solid #dc2626">
+        <h2>Breach Intelligence</h2>
+      </div>
+      <div style="padding:6pt 8pt">{breach_html}</div>
     </section>"""
 
     errors_section = ""
@@ -447,6 +488,7 @@ def build_html(data: dict) -> str:
   </section>
   {_section("HTTP Response Headers", _rows(headers), color="#7e3af2")}
   {takeover_section}
+  {breach_section}
   {errors_section}
 
   <div class="disclaimer">
