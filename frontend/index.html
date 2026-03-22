@@ -39,11 +39,20 @@
     <div id="results" class="hidden">
       <div class="result-header">
         <span id="result-domain"></span>
-        <button id="export-btn" class="export-btn">&#8659; Export Professional PDF</button>
+        <div class="result-actions">
+          <button id="watch-shortcut-btn" class="watch-shortcut-btn">&#9685; Monitor</button>
+          <button id="export-btn" class="export-btn">&#8659; Export PDF</button>
+        </div>
+      </div>
+
+      <!-- Summary card -->
+      <div class="summary-card" id="summary-card">
+        <div class="summary-title">Security Summary</div>
+        <div id="summary-checks" class="summary-checks"></div>
       </div>
 
       <section class="card" id="section-dns">
-        <h2 class="card-title" data-target="dns-body">DNS Records <span class="chevron">&#9660;</span></h2>
+        <h2 class="card-title" data-target="dns-body">DNS Records <span class="card-status" id="status-dns"></span><span class="chevron">&#9660;</span></h2>
         <div id="dns-body" class="card-body">
           <table id="dns-table"></table>
         </div>
@@ -57,7 +66,7 @@
       </section>
 
       <section class="card" id="section-ssl">
-        <h2 class="card-title" data-target="ssl-body">SSL / TLS Certificate <span class="chevron">&#9660;</span></h2>
+        <h2 class="card-title" data-target="ssl-body">SSL / TLS Certificate <span class="card-status" id="status-ssl"></span><span class="chevron">&#9660;</span></h2>
         <div id="ssl-body" class="card-body">
           <div id="ssl-expiry-banner"></div>
           <table id="ssl-table"></table>
@@ -72,14 +81,14 @@
       </section>
 
       <section class="card" id="section-iprep">
-        <h2 class="card-title" data-target="iprep-body">IP Reputation &amp; Geolocation <span class="chevron">&#9660;</span></h2>
+        <h2 class="card-title" data-target="iprep-body">IP Reputation &amp; Geolocation <span class="card-status" id="status-iprep"></span><span class="chevron">&#9660;</span></h2>
         <div id="iprep-body" class="card-body">
           <div id="iprep-content"></div>
         </div>
       </section>
 
       <section class="card" id="section-ct">
-        <h2 class="card-title" data-target="ct-body">Certificate Transparency — Subdomains <span class="chevron">&#9660;</span></h2>
+        <h2 class="card-title" data-target="ct-body">Certificate Transparency — Subdomains <span class="card-status" id="status-ct"></span><span class="chevron">&#9660;</span></h2>
         <div id="ct-body" class="card-body">
           <p id="ct-summary" class="ct-summary"></p>
           <div id="ct-tags"></div>
@@ -94,14 +103,14 @@
       </section>
 
       <section class="card" id="section-breaches">
-        <h2 class="card-title" data-target="breaches-body">Breach Intelligence <span class="chevron">&#9660;</span></h2>
+        <h2 class="card-title" data-target="breaches-body">Breach Intelligence <span class="card-status" id="status-breaches"></span><span class="chevron">&#9660;</span></h2>
         <div id="breaches-body" class="card-body">
           <div id="breaches-content"></div>
         </div>
       </section>
 
       <section class="card" id="section-takeover">
-        <h2 class="card-title" data-target="takeover-body">Subdomain Takeover Risks <span class="chevron">&#9660;</span></h2>
+        <h2 class="card-title" data-target="takeover-body">Subdomain Takeover Risks <span class="card-status" id="status-takeover"></span><span class="chevron">&#9660;</span></h2>
         <div id="takeover-body" class="card-body">
           <div id="takeover-content"></div>
         </div>

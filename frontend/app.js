@@ -6,10 +6,11 @@ const loader = document.getElementById("loader");
 const results = document.getElementById("results");
 const resultDomain = document.getElementById("result-domain");
 const exportBtn  = document.getElementById("export-btn");
-const watchCard  = document.getElementById("watch-card");
-const watchEmail = document.getElementById("watch-email");
-const watchBtn   = document.getElementById("watch-btn");
-const watchMsg   = document.getElementById("watch-msg");
+const watchCard         = document.getElementById("watch-card");
+const watchEmail        = document.getElementById("watch-email");
+const watchBtn          = document.getElementById("watch-btn");
+const watchMsg          = document.getElementById("watch-msg");
+const watchShortcutBtn  = document.getElementById("watch-shortcut-btn");
 
 let lastResults = null;
 
@@ -302,6 +303,99 @@ function renderErrors(errors) {
   renderTable(document.getElementById("errors-table"), rows);
 }
 
+// ── Summary card ──────────────────────────────────────────────────────────────
+
+function _statusDot(status) {
+  const map = { ok: "dot-ok", warn: "dot-warn", error: "dot-error", info: "dot-info", none: "dot-none" };
+  return `<span class="status-dot ${map[status] || "dot-none"}"></span>`;
+}
+
+function _setCardStatus(id, status) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = _statusDot(status);
+}
+
+function _checkSsl(ssl) {
+  if (!ssl || !Object.keys(ssl).length) return { status: "none", label: "SSL — No data" };
+  const days = parseInt(ssl.days_remaining, 10);
+  if (isNaN(days))   return { status: "none",  label: "SSL — Unknown" };
+  if (days < 0)      return { status: "error", label: `SSL — EXPIRED` };
+  if (days < 14)     return { status: "error", label: `SSL — Expires in ${days} days` };
+  if (days < 30)     return { status: "warn",  label: `SSL — Expires in ${days} days` };
+  return { status: "ok", label: `SSL — Valid (${days} days)` };
+}
+
+function _checkBlacklists(ipRep) {
+  if (!ipRep || !ipRep.length) return { status: "none", label: "Blacklists — No data" };
+  for (const host of ipRep) {
+    for (const [, status] of Object.entries(host.blacklists || {})) {
+      if (status === "listed") return { status: "error", label: "Blacklists — Listed on DNSBL" };
+    }
+  }
+  return { status: "ok", label: "Blacklists — Clean" };
+}
+
+function _checkDmarc(dns) {
+  const txt = (dns.TXT || []).join(" ").toLowerCase();
+  if (txt.includes("v=dmarc1")) return { status: "ok",   label: "DMARC — Present" };
+  return { status: "error", label: "DMARC — Missing" };
+}
+
+function _checkSpf(dns) {
+  const txt = (dns.TXT || []).join(" ").toLowerCase();
+  if (txt.includes("v=spf1")) return { status: "ok",   label: "SPF — Present" };
+  return { status: "error", label: "SPF — Missing" };
+}
+
+function _checkBreaches(breaches) {
+  if (!breaches || !breaches.length) return { status: "ok", label: "Breaches — None found" };
+  const total = breaches.reduce((s, b) => s + (b.pwn_count || 0), 0);
+  return { status: "error", label: `Breaches — ${breaches.length} found (${total.toLocaleString()} records)` };
+}
+
+function _checkTakeover(takeover) {
+  if (!takeover || !takeover.length) return { status: "ok", label: "Takeover — No risks found" };
+  const high = takeover.filter(f => f.severity === "high");
+  const med  = takeover.filter(f => f.severity === "medium");
+  if (high.length) return { status: "error", label: `Takeover — ${high.length} vulnerable subdomain${high.length > 1 ? "s" : ""}` };
+  if (med.length)  return { status: "warn",  label: `Takeover — ${med.length} dangling DNS record${med.length > 1 ? "s" : ""}` };
+  return { status: "info", label: "Takeover — Check inconclusive" };
+}
+
+function _checkSubdomains(ct) {
+  const total = ct?.total ?? 0;
+  if (!total) return { status: "info", label: "Subdomains — None found" };
+  return { status: "info", label: `Subdomains — ${total} discovered via CT logs` };
+}
+
+function buildSummary(data) {
+  const checks = [
+    { key: "ssl",       fn: () => _checkSsl(data.ssl),                  statusId: "status-ssl"      },
+    { key: "bl",        fn: () => _checkBlacklists(data.ip_reputation),  statusId: "status-iprep"    },
+    { key: "dmarc",     fn: () => _checkDmarc(data.dns || {}),           statusId: "status-dns"      },
+    { key: "spf",       fn: () => _checkSpf(data.dns || {}),             statusId: null              },
+    { key: "breaches",  fn: () => _checkBreaches(data.breaches),         statusId: "status-breaches" },
+    { key: "takeover",  fn: () => _checkTakeover(data.takeover),         statusId: "status-takeover" },
+    { key: "subdomains",fn: () => _checkSubdomains(data.ct),             statusId: "status-ct"       },
+  ];
+
+  const container = document.getElementById("summary-checks");
+  container.innerHTML = "";
+
+  checks.forEach(({ fn, statusId }) => {
+    const { status, label } = fn();
+
+    // Set card header dot
+    if (statusId) _setCardStatus(statusId, status);
+
+    // Add row to summary
+    const row = document.createElement("div");
+    row.className = `summary-row summary-${status}`;
+    row.innerHTML = `${_statusDot(status)}<span class="summary-label">${escHtml(label)}</span>`;
+    container.appendChild(row);
+  });
+}
+
 exportBtn.addEventListener("click", async () => {
   if (!lastResults) return;
   exportBtn.disabled = true;
@@ -370,6 +464,11 @@ watchBtn.addEventListener("click", async () => {
   }
 });
 
+watchShortcutBtn.addEventListener("click", () => {
+  watchCard.scrollIntoView({ behavior: "smooth", block: "center" });
+  watchEmail.focus();
+});
+
 function showWatchMsg(text, type) {
   watchMsg.textContent = text;
   watchMsg.className = `watch-msg msg-${type}`;
@@ -421,6 +520,7 @@ form.addEventListener("submit", async (e) => {
     renderBreaches(data.breaches || []);
     renderTakeover(data.takeover || []);
     renderErrors(data.errors || {});
+    buildSummary(data);
 
     show(results);
   } catch (err) {
