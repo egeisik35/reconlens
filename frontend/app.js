@@ -348,8 +348,11 @@ function _computeGrade(headers) {
   let score = 0;
   const checks = _SEC_HEADERS.map(({ key, name, weight, desc }) => {
     const present = !!h[key];
+    // CSP special case: report-only is monitoring mode, not enforcement
+    const reportOnly = key === "content-security-policy" && !present
+      && !!h["content-security-policy-report-only"];
     if (present) score += weight;
-    return { name, desc, present, weight };
+    return { name, desc, present, weight, reportOnly };
   });
   let grade;
   if (score === 100)     grade = "A+";
@@ -373,14 +376,16 @@ function renderHeadersSec(headers) {
   const { grade, score, checks } = _computeGrade(headers);
   const gradeKey = grade.replace("+", "-plus");
 
-  const checkItems = checks.map(({ name, desc, present, weight }) => {
-    const cls = present ? "check-pass" : "check-fail";
-    const icon = present ? "✓" : "✗";
-    const missing = !present ? ` <span class="check-missing">(+${weight} pts if added)</span>` : "";
+  const checkItems = checks.map(({ name, desc, present, weight, reportOnly }) => {
+    const cls   = present ? "check-pass" : reportOnly ? "check-warn" : "check-fail";
+    const icon  = present ? "✓" : reportOnly ? "⚠" : "✗";
+    const note  = present      ? ""
+                : reportOnly   ? ` <span class="check-missing">(report-only — monitors but doesn't block)</span>`
+                :                ` <span class="check-missing">(+${weight} pts if added)</span>`;
     return `<div class="check-item ${cls}">
       <span class="check-icon">${icon}</span>
       <span class="check-name">${escHtml(name)}</span>
-      <span class="check-desc">— ${escHtml(desc)}</span>${missing}
+      <span class="check-desc">— ${escHtml(desc)}</span>${note}
     </div>`;
   }).join("");
 

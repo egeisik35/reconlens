@@ -184,9 +184,13 @@ def fetch_ip_reputation(domain: str) -> list:
     """
     Resolve the domain's A records, then for each IP fetch geolocation
     data and DNSBL reputation. Returns a list of per-IP result dicts.
+    Uses public resolvers (8.8.8.8 / 1.1.1.1) so CDN-heavy domains
+    return globally representative IPs, not the scan server's nearest edge.
     """
     try:
-        answers = dns.resolver.resolve(domain, "A")
+        resolver = dns.resolver.Resolver()
+        resolver.nameservers = ["8.8.8.8", "1.1.1.1"]
+        answers = resolver.resolve(domain, "A")
         ips = [str(r) for r in answers][:3]   # cap at 3 IPs
     except Exception:
         return []

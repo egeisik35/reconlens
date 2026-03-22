@@ -673,10 +673,12 @@ td:last-child {
 
 .check-pass { color: var(--text); }
 .check-fail { color: var(--text-dim); }
+.check-warn { color: var(--text); }
 
 .check-icon { font-size: 0.7rem; font-weight: 700; min-width: 0.8rem; }
 .check-pass .check-icon { color: #3fb950; }
 .check-fail .check-icon { color: #f85149; }
+.check-warn .check-icon { color: #d29922; }
 
 .check-name { font-weight: 600; }
 .check-desc { color: var(--text-dim); font-size: 0.75rem; }

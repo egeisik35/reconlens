@@ -281,11 +281,18 @@ def build_html(data: dict) -> str:
     else:                  sec_grade = "F"
     grade_color = _GRADE_COLORS.get(sec_grade, "#6b7280")
 
+    def _csp_report_only(key):
+        return key == "content-security-policy" and key not in h_lower \
+               and "content-security-policy-report-only" in h_lower
+
     check_rows = "".join(
         f"""<tr>
-          <td style="padding:3pt 8pt;border-bottom:1px solid #f3f4f6;width:14pt;color:{'#16a34a' if key in h_lower else '#dc2626'};font-weight:700">{'✓' if key in h_lower else '✗'}</td>
+          <td style="padding:3pt 8pt;border-bottom:1px solid #f3f4f6;width:14pt;
+              color:{'#16a34a' if key in h_lower else '#d97706' if _csp_report_only(key) else '#dc2626'};
+              font-weight:700">{'✓' if key in h_lower else '⚠' if _csp_report_only(key) else '✗'}</td>
           <td style="padding:3pt 8pt;border-bottom:1px solid #f3f4f6;font-weight:600">{_esc(name)}</td>
-          <td style="padding:3pt 8pt;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:7.5pt">{_esc(desc)}</td>
+          <td style="padding:3pt 8pt;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:7.5pt">
+            {_esc(desc)}{' (report-only — not enforced)' if _csp_report_only(key) else ''}</td>
           <td style="padding:3pt 8pt;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:7.5pt;text-align:right">{weight}pts</td>
         </tr>"""
         for key, name, weight, desc in _SEC_HEADERS_PDF
