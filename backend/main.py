@@ -1,3 +1,4 @@
+import html
 import json
 import logging
 import re
@@ -194,12 +195,18 @@ async def watch(request: Request, req: WatchRequest):
 
     response = {"message": f"Now watching {req.domain}. Alerts will be sent to {req.email}."}
     if email_error:
-        response["warning"] = "Monitor saved, but confirmation email failed. Check RESEND_API_KEY."
+        response["warning"] = "Monitor saved, but confirmation email could not be sent."
     return response
 
 
+_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
 @app.get("/api/unwatch")
-async def unwatch(id: str):
+@limiter.limit("20/minute")
+async def unwatch(request: Request, id: str):
+    if not _UUID_RE.match(id):
+        raise HTTPException(status_code=400, detail="Invalid monitor ID.")
+
     conn = get_conn()
     row = conn.execute(
         "SELECT domain, email FROM monitors WHERE id=?", (id,)
@@ -214,7 +221,8 @@ async def unwatch(id: str):
             status_code=404,
         )
 
-    domain, email = row["domain"], row["email"]
+    domain = html.escape(row["domain"])
+    email  = html.escape(row["email"])
     conn.execute("DELETE FROM monitors WHERE id=?", (id,))
     conn.commit()
     conn.close()
