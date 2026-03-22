@@ -1,6 +1,7 @@
 import ssl
 import socket
 import ipaddress
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 import dns.resolver
@@ -206,7 +207,7 @@ def fetch_ct_subdomains(domain: str) -> dict:
     try:
         resp = requests.get(
             f"https://crt.sh/?q=%.{domain}&output=json",
-            timeout=20,
+            timeout=10,
             headers={"User-Agent": "Mozilla/5.0 (OSINT-Aggregator/1.0)"},
         )
         resp.raise_for_status()
@@ -232,17 +233,40 @@ def fetch_ct_subdomains(domain: str) -> dict:
 def run_all(domain: str) -> dict:
     errors: dict = {}
 
-    dns_data       = fetch_dns(domain)
-    whois_data     = fetch_whois(domain)
-    ssl_data       = fetch_ssl(domain)
-    headers_data   = fetch_headers(domain)
-    ct_data        = fetch_ct_subdomains(domain)
-    ip_rep_data    = fetch_ip_reputation(domain)
-    tech_data      = fetch_tech_stack(domain)
+    # Run all independent fetches in parallel
+    tasks = {
+        "dns":           lambda: fetch_dns(domain),
+        "whois":         lambda: fetch_whois(domain),
+        "ssl":           lambda: fetch_ssl(domain),
+        "headers":       lambda: fetch_headers(domain),
+        "ct":            lambda: fetch_ct_subdomains(domain),
+        "ip_reputation": lambda: fetch_ip_reputation(domain),
+        "tech_stack":    lambda: fetch_tech_stack(domain),
+        "breaches":      lambda: fetch_breaches(domain),
+    }
 
-    subdomains     = ct_data.get("subdomains", []) if isinstance(ct_data, dict) else []
-    takeover_data  = check_takeovers(subdomains)
-    breach_data    = fetch_breaches(domain)
+    results = {}
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {executor.submit(fn): key for key, fn in tasks.items()}
+        for future in as_completed(futures):
+            key = futures[future]
+            try:
+                results[key] = future.result()
+            except Exception as e:
+                results[key] = {"error": str(e)}
+
+    dns_data     = results["dns"]
+    whois_data   = results["whois"]
+    ssl_data     = results["ssl"]
+    headers_data = results["headers"]
+    ct_data      = results["ct"]
+    ip_rep_data  = results["ip_reputation"]
+    tech_data    = results["tech_stack"]
+    breach_data  = results["breaches"]
+
+    # Takeover check depends on CT results — runs after
+    subdomains    = ct_data.get("subdomains", []) if isinstance(ct_data, dict) else []
+    takeover_data = check_takeovers(subdomains)
 
     if "error" in whois_data:
         errors["whois"] = whois_data.pop("error")
@@ -250,7 +274,7 @@ def run_all(domain: str) -> dict:
         errors["ssl"] = ssl_data.pop("error")
     if "error" in headers_data:
         errors["headers"] = headers_data.pop("error")
-    if "error" in ct_data:
+    if isinstance(ct_data, dict) and "error" in ct_data:
         errors["ct"] = ct_data.pop("error")
     if isinstance(tech_data, dict) and "error" in tech_data:
         errors["tech_stack"] = tech_data.pop("error")
