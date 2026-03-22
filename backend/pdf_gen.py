@@ -49,6 +49,7 @@ def build_html(data: dict) -> str:
     ct = data.get("ct", {})
     takeover = data.get("takeover", [])
     breaches = data.get("breaches", [])
+    ports = data.get("ports", [])
     errors = data.get("errors", {})
 
     # DNS: filter empty record types
@@ -226,6 +227,83 @@ def build_html(data: dict) -> str:
         <h2>Breach Intelligence</h2>
       </div>
       <div style="padding:6pt 8pt">{breach_html}</div>
+    </section>"""
+
+    # Open ports section
+    _RISK_COLORS = {"critical": "#dc2626", "high": "#d97706", "medium": "#6b7280", "info": "#16a34a"}
+    if ports:
+        risky = [p for p in ports if p.get("risk") != "info"]
+        summary_line = f'{len(ports)} open port{"s" if len(ports) != 1 else ""} found{f" — {len(risky)} noteworthy" if risky else ""}.'
+        port_rows = "".join(
+            f"""<tr>
+              <td style="padding:4pt 8pt;border-bottom:1px solid #f3f4f6;font-weight:700;color:#1a56db">{p['port']}</td>
+              <td style="padding:4pt 8pt;border-bottom:1px solid #f3f4f6">{_esc(p['service'])}</td>
+              <td style="padding:4pt 8pt;border-bottom:1px solid #f3f4f6;font-weight:700;color:{_RISK_COLORS.get(p.get('risk','info'), '#6b7280')}">{_esc(p.get('risk','').upper())}</td>
+            </tr>"""
+            for p in ports
+        )
+        ports_html = f"""<p style="font-size:8pt;color:#6b7280;margin-bottom:6pt">{_esc(summary_line)}</p>
+        <table>
+          <tr style="background:#f9fafb">
+            <th style="padding:4pt 8pt;text-align:left;font-size:7.5pt;color:#6b7280;font-weight:600;width:50pt">Port</th>
+            <th style="padding:4pt 8pt;text-align:left;font-size:7.5pt;color:#6b7280;font-weight:600">Service</th>
+            <th style="padding:4pt 8pt;text-align:left;font-size:7.5pt;color:#6b7280;font-weight:600">Risk</th>
+          </tr>{port_rows}
+        </table>"""
+    else:
+        ports_html = '<p style="color:#9ca3af;font-style:italic;font-size:8pt">No exposed ports detected on scanned common ports.</p>'
+
+    ports_section = f"""<section>
+      <div class="section-header" style="border-left:4px solid #2563eb">
+        <h2>Exposed Ports</h2>
+      </div>
+      <div style="padding:6pt 8pt">{ports_html}</div>
+    </section>"""
+
+    # Security headers grade section
+    _SEC_HEADERS_PDF = [
+        ("strict-transport-security", "HSTS",                    30, "forces HTTPS"),
+        ("content-security-policy",   "Content-Security-Policy", 25, "prevents XSS"),
+        ("x-frame-options",           "X-Frame-Options",         15, "prevents clickjacking"),
+        ("x-content-type-options",    "X-Content-Type-Options",  15, "prevents MIME sniffing"),
+        ("referrer-policy",           "Referrer-Policy",         10, "controls referrer info"),
+        ("permissions-policy",        "Permissions-Policy",       5, "controls browser features"),
+    ]
+    _GRADE_COLORS = {"A+": "#16a34a", "A": "#22c55e", "B": "#84cc16", "C": "#eab308", "D": "#f97316", "F": "#dc2626"}
+
+    h_lower = {k.lower(): True for k in (headers or {}).keys()}
+    sec_score = sum(w for key, _, w, _ in _SEC_HEADERS_PDF if key in h_lower)
+    if sec_score == 100:   sec_grade = "A+"
+    elif sec_score >= 80:  sec_grade = "A"
+    elif sec_score >= 60:  sec_grade = "B"
+    elif sec_score >= 40:  sec_grade = "C"
+    elif sec_score >= 20:  sec_grade = "D"
+    else:                  sec_grade = "F"
+    grade_color = _GRADE_COLORS.get(sec_grade, "#6b7280")
+
+    check_rows = "".join(
+        f"""<tr>
+          <td style="padding:3pt 8pt;border-bottom:1px solid #f3f4f6;width:14pt;color:{'#16a34a' if key in h_lower else '#dc2626'};font-weight:700">{'✓' if key in h_lower else '✗'}</td>
+          <td style="padding:3pt 8pt;border-bottom:1px solid #f3f4f6;font-weight:600">{_esc(name)}</td>
+          <td style="padding:3pt 8pt;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:7.5pt">{_esc(desc)}</td>
+          <td style="padding:3pt 8pt;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:7.5pt;text-align:right">{weight}pts</td>
+        </tr>"""
+        for key, name, weight, desc in _SEC_HEADERS_PDF
+    )
+    headers_sec_html = f"""
+    <div style="display:flex;align-items:flex-start;gap:16pt;padding:6pt 8pt">
+      <div style="font-size:28pt;font-weight:900;color:{grade_color};line-height:1;min-width:30pt;text-align:center">{_esc(sec_grade)}</div>
+      <div style="flex:1">
+        <p style="font-size:8pt;color:#6b7280;margin-bottom:6pt">Score: {sec_score} / 100</p>
+        <table>{check_rows}</table>
+      </div>
+    </div>"""
+
+    headers_sec_section = f"""<section>
+      <div class="section-header" style="border-left:4px solid #7e3af2">
+        <h2>Security Headers</h2>
+      </div>
+      {headers_sec_html}
     </section>"""
 
     errors_section = ""
@@ -479,13 +557,14 @@ def build_html(data: dict) -> str:
     </div>
     <div style="padding:6pt 8pt">{ip_blocks_html}</div>
   </section>
-
+  {ports_section}
   <section>
     <div class="section-header" style="border-left:4px solid #0891b2">
       <h2>Certificate Transparency — Subdomains</h2>
     </div>
     <div style="padding:6pt 8pt">{ct_html}</div>
   </section>
+  {headers_sec_section}
   {_section("HTTP Response Headers", _rows(headers), color="#7e3af2")}
   {takeover_section}
   {breach_section}

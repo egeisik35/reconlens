@@ -295,6 +295,105 @@ function renderTakeover(findings) {
   });
 }
 
+// ── Open Ports ────────────────────────────────────────────────────────────────
+
+function renderPorts(ports) {
+  const container = document.getElementById("ports-content");
+  container.innerHTML = "";
+
+  if (!ports || !ports.length) {
+    container.innerHTML = `<p style="color:var(--text-dim);font-size:0.82rem">No exposed ports detected on scanned common ports.</p>`;
+    return;
+  }
+
+  const risky = ports.filter(p => p.risk !== "info");
+  const summary = document.createElement("p");
+  summary.className = "ports-summary";
+  summary.textContent = `${ports.length} open port${ports.length !== 1 ? "s" : ""} found${risky.length ? ` — ${risky.length} noteworthy` : ""}.`;
+  container.appendChild(summary);
+
+  const table = document.createElement("table");
+  table.className = "ports-table";
+  table.innerHTML = `<thead><tr><th>Port</th><th>Service</th><th>Risk</th></tr></thead>`;
+  const tbody = document.createElement("tbody");
+
+  ports.forEach((p) => {
+    const tr = document.createElement("tr");
+    const riskCls = `port-risk-${p.risk}`;
+    tr.innerHTML = `
+      <td><span class="port-num">${p.port}</span></td>
+      <td><span class="port-service">${escHtml(p.service)}</span></td>
+      <td><span class="${riskCls}">${escHtml(p.risk.toUpperCase())}</span></td>`;
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+// ── Security Headers Grade ─────────────────────────────────────────────────────
+
+const _SEC_HEADERS = [
+  { key: "strict-transport-security", name: "HSTS",                    weight: 30, desc: "forces HTTPS" },
+  { key: "content-security-policy",   name: "Content-Security-Policy", weight: 25, desc: "prevents XSS" },
+  { key: "x-frame-options",           name: "X-Frame-Options",         weight: 15, desc: "prevents clickjacking" },
+  { key: "x-content-type-options",    name: "X-Content-Type-Options",  weight: 15, desc: "prevents MIME sniffing" },
+  { key: "referrer-policy",           name: "Referrer-Policy",         weight: 10, desc: "controls referrer info" },
+  { key: "permissions-policy",        name: "Permissions-Policy",      weight:  5, desc: "controls browser features" },
+];
+
+function _computeGrade(headers) {
+  const h = {};
+  Object.keys(headers || {}).forEach(k => { h[k.toLowerCase()] = true; });
+  let score = 0;
+  const checks = _SEC_HEADERS.map(({ key, name, weight, desc }) => {
+    const present = !!h[key];
+    if (present) score += weight;
+    return { name, desc, present, weight };
+  });
+  let grade;
+  if (score === 100)     grade = "A+";
+  else if (score >= 80)  grade = "A";
+  else if (score >= 60)  grade = "B";
+  else if (score >= 40)  grade = "C";
+  else if (score >= 20)  grade = "D";
+  else                   grade = "F";
+  return { grade, score, checks };
+}
+
+function renderHeadersSec(headers) {
+  const container = document.getElementById("headers-sec-content");
+  container.innerHTML = "";
+
+  if (!headers || !Object.keys(headers).length || headers.error) {
+    container.innerHTML = `<p style="color:var(--text-dim);font-size:0.82rem">No headers data available.</p>`;
+    return;
+  }
+
+  const { grade, score, checks } = _computeGrade(headers);
+  const gradeKey = grade.replace("+", "-plus");
+
+  const checkItems = checks.map(({ name, desc, present, weight }) => {
+    const cls = present ? "check-pass" : "check-fail";
+    const icon = present ? "✓" : "✗";
+    const missing = !present ? ` <span class="check-missing">(+${weight} pts if added)</span>` : "";
+    return `<div class="check-item ${cls}">
+      <span class="check-icon">${icon}</span>
+      <span class="check-name">${escHtml(name)}</span>
+      <span class="check-desc">— ${escHtml(desc)}</span>${missing}
+    </div>`;
+  }).join("");
+
+  container.innerHTML = `
+    <div class="headers-grade-wrap">
+      <div class="grade-letter grade-${gradeKey}">${escHtml(grade)}</div>
+      <div class="grade-details">
+        <div class="grade-score">Score: ${score} / 100</div>
+        <div class="headers-check-list">${checkItems}</div>
+      </div>
+    </div>`;
+}
+
 function renderErrors(errors) {
   const section = document.getElementById("section-errors");
   if (!Object.keys(errors).length) { hide(section); return; }
@@ -362,6 +461,25 @@ function _checkTakeover(takeover) {
   return { status: "info", label: "Takeover — Check inconclusive" };
 }
 
+function _checkPorts(ports) {
+  if (!ports) return { status: "none", label: "Ports — No data" };
+  if (!ports.length) return { status: "ok", label: "Ports — No exposed ports found" };
+  const critical = ports.filter(p => p.risk === "critical");
+  const high     = ports.filter(p => p.risk === "high");
+  const noteworthy = ports.filter(p => p.risk !== "info");
+  if (critical.length) return { status: "error", label: `Ports — ${critical.length} critical port${critical.length > 1 ? "s" : ""} exposed` };
+  if (high.length)     return { status: "warn",  label: `Ports — ${high.length} high-risk port${high.length > 1 ? "s" : ""} exposed` };
+  if (noteworthy.length) return { status: "warn", label: `Ports — ${noteworthy.length} noteworthy port${noteworthy.length > 1 ? "s" : ""} open` };
+  return { status: "info", label: `Ports — ${ports.length} standard port${ports.length > 1 ? "s" : ""} open` };
+}
+
+function _checkHeadersSec(headers) {
+  if (!headers || !Object.keys(headers).length || headers.error) return { status: "none", label: "Security Headers — No data" };
+  const { grade, score } = _computeGrade(headers);
+  const status = score >= 80 ? "ok" : score >= 40 ? "warn" : "error";
+  return { status, label: `Security Headers — Grade ${grade} (${score}/100)` };
+}
+
 function _checkSubdomains(ct) {
   const total = ct?.total ?? 0;
   if (!total) return { status: "info", label: "Subdomains — None found" };
@@ -370,13 +488,15 @@ function _checkSubdomains(ct) {
 
 function buildSummary(data) {
   const checks = [
-    { key: "ssl",       fn: () => _checkSsl(data.ssl),                  statusId: "status-ssl"      },
-    { key: "bl",        fn: () => _checkBlacklists(data.ip_reputation),  statusId: "status-iprep"    },
-    { key: "dmarc",     fn: () => _checkDmarc(data.dns || {}),           statusId: "status-dns"      },
-    { key: "spf",       fn: () => _checkSpf(data.dns || {}),             statusId: null              },
-    { key: "breaches",  fn: () => _checkBreaches(data.breaches),         statusId: "status-breaches" },
-    { key: "takeover",  fn: () => _checkTakeover(data.takeover),         statusId: "status-takeover" },
-    { key: "subdomains",fn: () => _checkSubdomains(data.ct),             statusId: "status-ct"       },
+    { key: "ssl",        fn: () => _checkSsl(data.ssl),                  statusId: "status-ssl"         },
+    { key: "bl",         fn: () => _checkBlacklists(data.ip_reputation),  statusId: "status-iprep"       },
+    { key: "dmarc",      fn: () => _checkDmarc(data.dns || {}),           statusId: "status-dns"         },
+    { key: "spf",        fn: () => _checkSpf(data.dns || {}),             statusId: null                 },
+    { key: "breaches",   fn: () => _checkBreaches(data.breaches),         statusId: "status-breaches"    },
+    { key: "takeover",   fn: () => _checkTakeover(data.takeover),         statusId: "status-takeover"    },
+    { key: "ports",      fn: () => _checkPorts(data.ports),               statusId: "status-ports"       },
+    { key: "headerssec", fn: () => _checkHeadersSec(data.headers),        statusId: "status-headers-sec" },
+    { key: "subdomains", fn: () => _checkSubdomains(data.ct),             statusId: "status-ct"          },
   ];
 
   const container = document.getElementById("summary-checks");
@@ -520,6 +640,8 @@ form.addEventListener("submit", async (e) => {
     renderHeaders(data.headers || {});
     renderBreaches(data.breaches || []);
     renderTakeover(data.takeover || []);
+    renderPorts(data.ports || []);
+    renderHeadersSec(data.headers || {});
     renderErrors(data.errors || {});
     buildSummary(data);
 

@@ -579,4 +579,107 @@ td:last-child {
 .ssl-critical { background: rgba(248,81,73,0.12);  border: 1px solid rgba(248,81,73,0.35);  color: #f85149; }
 .ssl-expired  { background: rgba(248,81,73,0.2);   border: 1px solid #f85149;               color: #f85149; font-weight: 700; }
 
+/* ── Exposed Ports ───────────────────────────────────────────────────────────── */
+
+.ports-summary {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  margin-bottom: 0.75rem;
+}
+
+.ports-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.ports-table thead th {
+  text-align: left;
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.6rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.ports-table tbody td {
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.ports-table tbody tr:last-child td { border-bottom: none; }
+
+.port-num {
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.port-service { color: var(--text); }
+
+.port-risk-critical { color: #f85149; font-weight: 700; }
+.port-risk-high     { color: #d29922; font-weight: 700; }
+.port-risk-medium   { color: #8b949e; }
+.port-risk-info     { color: #3fb950; }
+
+/* ── Security Headers Grade ──────────────────────────────────────────────────── */
+
+.headers-grade-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.grade-letter {
+  font-size: 3.5rem;
+  font-weight: 900;
+  line-height: 1;
+  min-width: 3rem;
+  text-align: center;
+  font-family: ui-monospace, monospace;
+}
+
+.grade-A-plus { color: #3fb950; }
+.grade-A      { color: #56d364; }
+.grade-B      { color: #d29922; }
+.grade-C      { color: #e3b341; }
+.grade-D      { color: #f97316; }
+.grade-F      { color: #f85149; }
+
+.grade-details { flex: 1; }
+
+.grade-score {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  margin-bottom: 0.6rem;
+}
+
+.headers-check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.check-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.check-pass { color: var(--text); }
+.check-fail { color: var(--text-dim); }
+
+.check-icon { font-size: 0.7rem; font-weight: 700; min-width: 0.8rem; }
+.check-pass .check-icon { color: #3fb950; }
+.check-fail .check-icon { color: #f85149; }
+
+.check-name { font-weight: 600; }
+.check-desc { color: var(--text-dim); font-size: 0.75rem; }
+.check-missing { color: #8b949e; font-size: 0.72rem; font-style: italic; }
+
 .hidden { display: none; }

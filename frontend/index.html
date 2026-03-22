@@ -90,6 +90,13 @@
         </div>
       </section>
 
+      <section class="card" id="section-ports">
+        <h2 class="card-title" data-target="ports-body">Exposed Ports <span class="card-status" id="status-ports"></span><span class="chevron">&#9660;</span></h2>
+        <div id="ports-body" class="card-body">
+          <div id="ports-content"></div>
+        </div>
+      </section>
+
       <section class="card" id="section-ct">
         <h2 class="card-title" data-target="ct-body">Certificate Transparency — Subdomains <span class="card-status" id="status-ct"></span><span class="chevron">&#9660;</span></h2>
         <div id="ct-body" class="card-body">
@@ -98,8 +105,15 @@
         </div>
       </section>
 
+      <section class="card" id="section-headers-sec">
+        <h2 class="card-title" data-target="headers-sec-body">Security Headers <span class="card-status" id="status-headers-sec"></span><span class="chevron">&#9660;</span></h2>
+        <div id="headers-sec-body" class="card-body">
+          <div id="headers-sec-content"></div>
+        </div>
+      </section>
+
       <section class="card" id="section-headers">
-        <h2 class="card-title" data-target="headers-body">HTTP Headers <span class="chevron">&#9660;</span></h2>
+        <h2 class="card-title" data-target="headers-body">HTTP Headers (Raw) <span class="chevron">&#9660;</span></h2>
         <div id="headers-body" class="card-body">
           <table id="headers-table"></table>
         </div>

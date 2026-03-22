@@ -11,6 +11,7 @@ import requests
 from techstack import fetch_tech_stack
 from takeover import check_takeovers
 from breach import fetch_breaches
+from ports import scan_ports
 
 
 # ── SSRF guard ────────────────────────────────────────────────────────────────
@@ -243,10 +244,11 @@ def run_all(domain: str) -> dict:
         "ip_reputation": lambda: fetch_ip_reputation(domain),
         "tech_stack":    lambda: fetch_tech_stack(domain),
         "breaches":      lambda: fetch_breaches(domain),
+        "ports":         lambda: scan_ports(domain),
     }
 
     results = {}
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    with ThreadPoolExecutor(max_workers=9) as executor:
         futures = {executor.submit(fn): key for key, fn in tasks.items()}
         for future in as_completed(futures):
             key = futures[future]
@@ -263,6 +265,7 @@ def run_all(domain: str) -> dict:
     ip_rep_data  = results["ip_reputation"]
     tech_data    = results["tech_stack"]
     breach_data  = results["breaches"]
+    ports_data   = results["ports"]
 
     # Takeover check depends on CT results — runs after
     subdomains    = ct_data.get("subdomains", []) if isinstance(ct_data, dict) else []
@@ -290,5 +293,6 @@ def run_all(domain: str) -> dict:
         "ct":            ct_data,
         "takeover":      takeover_data,
         "breaches":      breach_data,
+        "ports":         ports_data,
         "errors":        errors,
     }
