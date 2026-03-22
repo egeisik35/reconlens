@@ -1,11 +1,18 @@
+import json
 import logging
 import re
 import os
+import uuid
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import Response
+from fastapi.responses import Response, HTMLResponse
 from pydantic import BaseModel, field_validator
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -14,14 +21,26 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from osint import run_all
 from pdf_gen import generate_pdf
+from database import init_db, get_conn
+from monitor import take_snapshot
+from mailer import send_confirmation
+from scheduler import start_scheduler, stop_scheduler
 
 logger = logging.getLogger(__name__)
 
 # ── Rate limiter ───────────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address)
 
+# ── Lifespan (startup / shutdown) ─────────────────────────────────────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    start_scheduler()
+    yield
+    stop_scheduler()
+
 # ── App ────────────────────────────────────────────────────────────────────────
-app = FastAPI(title="OSINT Aggregator")
+app = FastAPI(title="OSINT Aggregator", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -39,7 +58,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["POST", "GET"],
+    allow_methods=["POST", "GET", "DELETE"],
     allow_headers=["Content-Type"],
 )
 
@@ -48,11 +67,17 @@ DOMAIN_RE = re.compile(
     r"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+"
     r"[a-zA-Z]{2,}$"
 )
-
-# Allowed characters for a safe Content-Disposition filename
-_SAFE_FILENAME_RE = re.compile(r"[^a-z0-9\-\.]")
+_EMAIL_RE       = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,255}\.[^@\s]{2,}$")
+_SAFE_FNAME_RE  = re.compile(r"[^a-z0-9\-\.]")
 
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
+
+
+def _validate_domain(v: str) -> str:
+    v = v.strip().lower().removeprefix("http://").removeprefix("https://").split("/")[0]
+    if not DOMAIN_RE.match(v):
+        raise ValueError("Invalid domain name")
+    return v
 
 
 # ── Request models ─────────────────────────────────────────────────────────────
@@ -62,10 +87,7 @@ class LookupRequest(BaseModel):
     @field_validator("domain")
     @classmethod
     def validate_domain(cls, v: str) -> str:
-        v = v.strip().lower().removeprefix("http://").removeprefix("https://").split("/")[0]
-        if not DOMAIN_RE.match(v):
-            raise ValueError("Invalid domain name")
-        return v
+        return _validate_domain(v)
 
 
 class ExportRequest(BaseModel):
@@ -82,9 +104,24 @@ class ExportRequest(BaseModel):
     @field_validator("domain")
     @classmethod
     def validate_domain(cls, v: str) -> str:
-        v = v.strip().lower().removeprefix("http://").removeprefix("https://").split("/")[0]
-        if not DOMAIN_RE.match(v):
-            raise ValueError("Invalid domain name")
+        return _validate_domain(v)
+
+
+class WatchRequest(BaseModel):
+    domain: str
+    email: str
+
+    @field_validator("domain")
+    @classmethod
+    def validate_domain(cls, v: str) -> str:
+        return _validate_domain(v)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        v = v.strip().lower()
+        if not _EMAIL_RE.match(v):
+            raise ValueError("Invalid email address")
         return v
 
 
@@ -104,9 +141,9 @@ async def lookup(request: Request, req: LookupRequest):
 @limiter.limit("10/minute")
 async def export_pdf(request: Request, req: ExportRequest):
     try:
-        pdf_bytes = generate_pdf(req.model_dump())
-        safe_domain = _SAFE_FILENAME_RE.sub("-", req.domain)
-        filename = f"osint-report-{safe_domain}.pdf"
+        pdf_bytes  = generate_pdf(req.model_dump())
+        safe_name  = _SAFE_FNAME_RE.sub("-", req.domain)
+        filename   = f"osint-report-{safe_name}.pdf"
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
@@ -115,6 +152,90 @@ async def export_pdf(request: Request, req: ExportRequest):
     except Exception as e:
         logger.error("PDF export failed for %s: %s", req.domain, e, exc_info=True)
         raise HTTPException(status_code=500, detail="PDF generation failed. Please try again.")
+
+
+@app.post("/api/watch")
+@limiter.limit("3/minute")
+async def watch(request: Request, req: WatchRequest):
+    conn = get_conn()
+    existing = conn.execute(
+        "SELECT id FROM monitors WHERE domain=? AND email=?",
+        (req.domain, req.email),
+    ).fetchone()
+    conn.close()
+
+    if existing:
+        return {"message": f"Already watching {req.domain} for {req.email}."}
+
+    monitor_id = str(uuid.uuid4())
+    now        = datetime.now(timezone.utc).isoformat()
+
+    try:
+        snapshot = take_snapshot(req.domain)
+    except Exception as e:
+        logger.error("Snapshot failed for %s: %s", req.domain, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Could not snapshot domain. Please try again.")
+
+    conn = get_conn()
+    conn.execute(
+        "INSERT INTO monitors (id, domain, email, created_at, last_checked, snapshot) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (monitor_id, req.domain, req.email, now, now, json.dumps(snapshot)),
+    )
+    conn.commit()
+    conn.close()
+
+    email_error = None
+    try:
+        send_confirmation(domain=req.domain, email=req.email, monitor_id=monitor_id)
+    except Exception as e:
+        logger.error("Confirmation email failed for %s: %s", req.email, e)
+        email_error = str(e)
+
+    response = {"message": f"Now watching {req.domain}. Alerts will be sent to {req.email}."}
+    if email_error:
+        response["warning"] = "Monitor saved, but confirmation email failed. Check RESEND_API_KEY."
+    return response
+
+
+@app.get("/api/unwatch")
+async def unwatch(id: str):
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT domain, email FROM monitors WHERE id=?", (id,)
+    ).fetchone()
+
+    if not row:
+        conn.close()
+        return HTMLResponse(
+            "<html><body style='font-family:monospace;padding:40px'>"
+            "<h2>Not found</h2><p>This monitor doesn't exist or was already removed.</p>"
+            "</body></html>",
+            status_code=404,
+        )
+
+    domain, email = row["domain"], row["email"]
+    conn.execute("DELETE FROM monitors WHERE id=?", (id,))
+    conn.commit()
+    conn.close()
+
+    return HTMLResponse(f"""
+        <html><head><title>Unsubscribed</title></head>
+        <body style="font-family:'Courier New',monospace;background:#0d1117;color:#c9d1d9;
+                     display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+          <div style="text-align:center">
+            <div style="color:#58a6ff;font-size:1.4rem;font-weight:700;margin-bottom:12px">
+              OSINT Aggregator
+            </div>
+            <h2 style="color:#c9d1d9;margin-bottom:8px">Unsubscribed</h2>
+            <p style="color:#8b949e">
+              <strong style="color:#c9d1d9">{email}</strong> will no longer
+              receive alerts for <strong style="color:#58a6ff">{domain}</strong>.
+            </p>
+            <a href="/" style="color:#58a6ff;font-size:0.85rem">Back to OSINT Aggregator</a>
+          </div>
+        </body></html>
+    """)
 
 
 # Serve the frontend — must be mounted last

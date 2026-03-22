@@ -5,3 +5,6 @@ python-whois==0.9.4
 requests==2.32.3
 weasyprint==68.1
 slowapi==0.1.9
+apscheduler==3.11.2
+resend==2.26.0
+python-dotenv==1.2.2

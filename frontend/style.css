@@ -241,6 +241,63 @@ td:last-child {
 
 .errors-card .card-title { color: var(--error); }
 
+/* Domain Monitor / Watch card */
+.watch-card {
+  background: linear-gradient(135deg, rgba(88,166,255,0.06), rgba(88,166,255,0.02));
+  border: 1px solid rgba(88,166,255,0.25);
+  border-radius: var(--radius);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: 1rem;
+  padding: 1rem 1.2rem;
+}
+.watch-card-left  { flex: 1; min-width: 200px; }
+.watch-card-right { flex: 1; min-width: 240px; }
+.watch-title {
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  margin-bottom: 0.3rem;
+}
+.watch-desc { color: var(--text-dim); font-size: 0.78rem; line-height: 1.5; }
+.watch-form-row { display: flex; gap: 0.4rem; }
+.watch-form-row input[type="email"] {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.82rem;
+  padding: 0.45rem 0.7rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.watch-form-row input[type="email"]:focus { border-color: var(--accent); }
+#watch-btn {
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  color: #0d1117;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.45rem 1rem;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+#watch-btn:hover    { background: var(--accent-hover); }
+#watch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.watch-msg { font-size: 0.78rem; margin-top: 0.4rem; }
+.msg-ok    { color: var(--success); }
+.msg-warn  { color: #d29922; }
+.msg-error { color: var(--error); }
+
 /* Tech Stack Fingerprint */
 .tech-row {
   display: flex;

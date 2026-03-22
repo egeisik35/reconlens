@@ -5,7 +5,11 @@ const errorMsg = document.getElementById("error-msg");
 const loader = document.getElementById("loader");
 const results = document.getElementById("results");
 const resultDomain = document.getElementById("result-domain");
-const exportBtn = document.getElementById("export-btn");
+const exportBtn  = document.getElementById("export-btn");
+const watchCard  = document.getElementById("watch-card");
+const watchEmail = document.getElementById("watch-email");
+const watchBtn   = document.getElementById("watch-btn");
+const watchMsg   = document.getElementById("watch-msg");
 
 let lastResults = null;
 
@@ -257,10 +261,59 @@ exportBtn.addEventListener("click", async () => {
   }
 });
 
+watchBtn.addEventListener("click", async () => {
+  const email = watchEmail.value.trim();
+  if (!email) { showWatchMsg("Please enter your email address.", "error"); return; }
+  if (!lastResults) return;
+
+  watchBtn.disabled = true;
+  watchBtn.textContent = "Saving…";
+  hideWatchMsg();
+
+  try {
+    const res = await fetch("/api/watch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ domain: lastResults.domain, email }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showWatchMsg(data.detail || "Failed to set up monitoring.", "error");
+    } else {
+      showWatchMsg(data.warning || data.message, data.warning ? "warn" : "ok");
+      watchBtn.textContent = "Watching";
+      watchBtn.disabled = true;
+    }
+  } catch {
+    showWatchMsg("Network error. Please try again.", "error");
+    watchBtn.disabled = false;
+    watchBtn.textContent = "Watch Domain";
+  } finally {
+    if (!watchBtn.disabled || watchMsg.classList.contains("msg-error")) {
+      watchBtn.disabled = false;
+      if (watchBtn.textContent === "Saving…") watchBtn.textContent = "Watch Domain";
+    }
+  }
+});
+
+function showWatchMsg(text, type) {
+  watchMsg.textContent = text;
+  watchMsg.className = `watch-msg msg-${type}`;
+}
+
+function hideWatchMsg() {
+  watchMsg.textContent = "";
+  watchMsg.className = "watch-msg hidden";
+}
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   clearError();
   hide(results);
+  hideWatchMsg();
+  watchEmail.value = "";
+  watchBtn.disabled = false;
+  watchBtn.textContent = "Watch Domain";
 
   const domain = input.value.trim();
   if (!domain) { setError("Please enter a domain."); return; }
