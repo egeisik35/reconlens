@@ -1,11 +1,15 @@
 # Python
 venv/
+.venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
 dist/
 build/
 .pytest_cache/
+
+# Node
+node_modules/
 
 # Environment / secrets
 .env
@@ -16,6 +20,7 @@ build/
 # Generated files
 *.pdf
 *.db
+*.sqlite
 
 # OS
 .DS_Store

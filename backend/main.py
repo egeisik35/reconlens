@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
     stop_scheduler()
 
 # ── App ────────────────────────────────────────────────────────────────────────
-app = FastAPI(title="OSINT Aggregator", lifespan=lifespan)
+app = FastAPI(title="ReconLens", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -143,7 +143,7 @@ async def export_pdf(request: Request, req: ExportRequest):
     try:
         pdf_bytes  = generate_pdf(req.model_dump())
         safe_name  = _SAFE_FNAME_RE.sub("-", req.domain)
-        filename   = f"osint-report-{safe_name}.pdf"
+        filename   = f"reconlens-report-{safe_name}.pdf"
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
@@ -225,14 +225,14 @@ async def unwatch(id: str):
                      display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
           <div style="text-align:center">
             <div style="color:#58a6ff;font-size:1.4rem;font-weight:700;margin-bottom:12px">
-              OSINT Aggregator
+              ReconLens
             </div>
             <h2 style="color:#c9d1d9;margin-bottom:8px">Unsubscribed</h2>
             <p style="color:#8b949e">
               <strong style="color:#c9d1d9">{email}</strong> will no longer
               receive alerts for <strong style="color:#58a6ff">{domain}</strong>.
             </p>
-            <a href="/" style="color:#58a6ff;font-size:0.85rem">Back to OSINT Aggregator</a>
+            <a href="/" style="color:#58a6ff;font-size:0.85rem">Back to ReconLens</a>
           </div>
         </body></html>
     """)

@@ -46,6 +46,18 @@ header h1 {
   font-size: 0.9rem;
 }
 
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  text-decoration: none;
+  margin-top: 0.5rem;
+  transition: color 0.2s;
+}
+.github-link:hover { color: var(--text); }
+
 /* Form */
 .input-row {
   display: flex;
