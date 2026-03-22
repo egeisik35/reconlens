@@ -42,6 +42,7 @@ class ExportRequest(BaseModel):
     domain: str
     dns: dict = {}
     whois: dict = {}
+    ssl: dict = {}
     headers: dict = {}
     errors: dict = {}
 

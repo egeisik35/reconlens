@@ -1,6 +1,44 @@
+import ssl
+import socket
+from datetime import datetime, timezone
+
 import dns.resolver
 import whois
 import requests
+
+
+def fetch_ssl(domain: str) -> dict:
+    ctx = ssl.create_default_context()
+    try:
+        with socket.create_connection((domain, 443), timeout=8) as sock:
+            with ctx.wrap_socket(sock, server_hostname=domain) as ssock:
+                cert = ssock.getpeercert()
+    except Exception as e:
+        return {"error": str(e)}
+
+    subject = dict(x[0] for x in cert.get("subject", []))
+    issuer = dict(x[0] for x in cert.get("issuer", []))
+
+    not_after = cert.get("notAfter", "")
+    try:
+        expiry_dt = datetime.strptime(not_after, "%b %d %H:%M:%S %Y %Z").replace(tzinfo=timezone.utc)
+        days_remaining = (expiry_dt - datetime.now(timezone.utc)).days
+    except Exception:
+        days_remaining = None
+
+    sans = [val for typ, val in cert.get("subjectAltName", []) if typ == "DNS"]
+
+    return {
+        "subject_cn":        subject.get("commonName"),
+        "issuer_cn":         issuer.get("commonName"),
+        "issuer_org":        issuer.get("organizationName"),
+        "valid_from":        cert.get("notBefore"),
+        "valid_until":       not_after,
+        "days_remaining":    str(days_remaining) if days_remaining is not None else None,
+        "expired":           str(days_remaining < 0) if days_remaining is not None else None,
+        "serial_number":     cert.get("serialNumber"),
+        "subject_alt_names": sans,
+    }
 
 
 def fetch_dns(domain: str) -> dict:
@@ -58,16 +96,20 @@ def run_all(domain: str) -> dict:
     dns_data = fetch_dns(domain)
     whois_data = fetch_whois(domain)
     headers_data = fetch_headers(domain)
+    ssl_data = fetch_ssl(domain)
 
     if "error" in whois_data:
         errors["whois"] = whois_data.pop("error")
     if "error" in headers_data:
         errors["headers"] = headers_data.pop("error")
+    if "error" in ssl_data:
+        errors["ssl"] = ssl_data.pop("error")
 
     return {
         "domain": domain,
         "dns": dns_data,
         "whois": whois_data,
+        "ssl": ssl_data,
         "headers": headers_data,
         "errors": errors,
     }

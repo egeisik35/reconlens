@@ -42,6 +42,7 @@ def build_html(data: dict) -> str:
 
     dns = data.get("dns", {})
     whois = data.get("whois", {})
+    ssl = data.get("ssl", {})
     headers = data.get("headers", {})
     errors = data.get("errors", {})
 
@@ -49,6 +50,27 @@ def build_html(data: dict) -> str:
     dns_filtered = {k: v for k, v in dns.items() if v}
     dns_html = _rows(dns_filtered, skip_empty=False) if dns_filtered else \
         "<tr><td colspan='2' class='empty'>No DNS records found</td></tr>"
+
+    # SSL expiry banner for PDF
+    ssl_banner = ""
+    days_str = ssl.get("days_remaining")
+    if days_str is not None:
+        try:
+            days = int(days_str)
+            if days < 0:
+                ssl_banner = f'<div class="ssl-badge ssl-expired">EXPIRED {abs(days)} days ago</div>'
+            elif days < 14:
+                ssl_banner = f'<div class="ssl-badge ssl-critical">CRITICAL — expires in {days} days</div>'
+            elif days < 30:
+                ssl_banner = f'<div class="ssl-badge ssl-warn">Warning — expires in {days} days</div>'
+            else:
+                ssl_banner = f'<div class="ssl-badge ssl-ok">Valid for {days} more days</div>'
+        except ValueError:
+            pass
+
+    ssl_skip = {"days_remaining", "expired"}
+    ssl_filtered = {k: v for k, v in ssl.items() if k not in ssl_skip and v}
+    ssl_html = ssl_banner + ("<table>" + _rows(ssl_filtered) + "</table>" if ssl_filtered else "")
 
     errors_section = ""
     if errors:
@@ -193,6 +215,20 @@ def build_html(data: dict) -> str:
     margin: 1pt 2pt 1pt 0;
   }}
 
+  /* ── SSL badges ── */
+  .ssl-badge {{
+    display: inline-block;
+    border-radius: 4pt;
+    font-size: 8pt;
+    font-weight: 700;
+    padding: 2pt 7pt;
+    margin-bottom: 6pt;
+  }}
+  .ssl-ok       {{ background: #dcfce7; color: #166534; border: 1px solid #86efac; }}
+  .ssl-warn     {{ background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }}
+  .ssl-critical {{ background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }}
+  .ssl-expired  {{ background: #fee2e2; color: #991b1b; border: 1px solid #f87171; font-weight: 900; }}
+
   /* ── Disclaimer ── */
   .disclaimer {{
     margin-top: 20pt;
@@ -227,6 +263,12 @@ def build_html(data: dict) -> str:
 
   {_section("DNS Records", dns_html)}
   {_section("WHOIS Registration Data", _rows(whois), color="#047857")}
+  <section>
+    <div class="section-header" style="border-left:4px solid #d97706">
+      <h2>SSL / TLS Certificate</h2>
+    </div>
+    {ssl_html}
+  </section>
   {_section("HTTP Response Headers", _rows(headers), color="#7e3af2")}
   {errors_section}
 

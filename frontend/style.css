@@ -241,4 +241,17 @@ td:last-child {
 
 .errors-card .card-title { color: var(--error); }
 
+/* SSL expiry banner */
+.ssl-banner {
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+  padding: 0.4rem 0.75rem;
+}
+.ssl-ok       { background: rgba(63,185,80,0.12);  border: 1px solid rgba(63,185,80,0.35);  color: #3fb950; }
+.ssl-warn     { background: rgba(210,153,34,0.12); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.ssl-critical { background: rgba(248,81,73,0.12);  border: 1px solid rgba(248,81,73,0.35);  color: #f85149; }
+.ssl-expired  { background: rgba(248,81,73,0.2);   border: 1px solid #f85149;               color: #f85149; font-weight: 700; }
+
 .hidden { display: none; }

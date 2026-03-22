@@ -69,6 +69,32 @@ function renderHeaders(h) {
   renderTable(document.getElementById("headers-table"), rows);
 }
 
+function renderSsl(ssl) {
+  const banner = document.getElementById("ssl-expiry-banner");
+  const tableEl = document.getElementById("ssl-table");
+  banner.innerHTML = "";
+
+  if (!ssl || !Object.keys(ssl).length) {
+    tableEl.innerHTML = `<tr><td colspan="2" style="color:var(--text-dim)">No SSL data</td></tr>`;
+    return;
+  }
+
+  // Expiry banner
+  const days = parseInt(ssl.days_remaining, 10);
+  if (!isNaN(days)) {
+    let cls = "ssl-ok", msg = `Valid for ${days} more days`;
+    if (days < 0)  { cls = "ssl-expired"; msg = `EXPIRED ${Math.abs(days)} days ago`; }
+    else if (days < 14) { cls = "ssl-critical"; msg = `CRITICAL — expires in ${days} days`; }
+    else if (days < 30) { cls = "ssl-warn";     msg = `Warning — expires in ${days} days`; }
+    banner.innerHTML = `<div class="ssl-banner ${cls}">${msg}</div>`;
+  }
+
+  // Render all rows except days_remaining / expired (shown in banner)
+  const skip = new Set(["days_remaining", "expired"]);
+  const rows = Object.entries(ssl).filter(([k, v]) => !skip.has(k) && v != null && v !== "");
+  renderTable(tableEl, rows);
+}
+
 function renderErrors(errors) {
   const section = document.getElementById("section-errors");
   if (!Object.keys(errors).length) { hide(section); return; }
@@ -139,6 +165,7 @@ form.addEventListener("submit", async (e) => {
     resultDomain.textContent = data.domain;
     renderDns(data.dns || {});
     renderWhois(data.whois || {});
+    renderSsl(data.ssl || {});
     renderHeaders(data.headers || {});
     renderErrors(data.errors || {});
 
