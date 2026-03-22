@@ -109,9 +109,16 @@ def check_takeovers(subdomains: list[str]) -> list[dict]:
     findings = []
     probed   = 0
 
+    # Skip obviously internal subdomains — not public-facing, not real takeover risks
+    _INTERNAL = ("corp.", "int.", "intranet.", "internal.", "stg.", "dev.", "staging.", "test.", "qa.", "grid.")
+
     for sub in subdomains:
         if probed >= _MAX_PROBES:
             break
+
+        # Skip internal subdomains
+        if any(f".{pat}" in sub or sub.startswith(pat) for pat in _INTERNAL):
+            continue
 
         try:
             cname, nxdomain = _resolve_cname_chain(sub)
