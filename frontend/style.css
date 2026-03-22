@@ -210,9 +210,20 @@ button[type="submit"]:disabled { opacity: 0.5; cursor: not-allowed; }
   margin-bottom: 1.2rem;
 }
 
+.result-domain-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
 #result-domain {
   color: var(--accent);
   font-weight: 700;
+}
+
+.result-timer {
+  font-size: 0.72rem;
+  color: var(--text-dim);
 }
 
 .export-btn {

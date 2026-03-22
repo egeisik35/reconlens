@@ -493,6 +493,7 @@ form.addEventListener("submit", async (e) => {
 
   submitBtn.disabled = true;
   show(loader);
+  const _t0 = performance.now();
 
   try {
     const res = await fetch("/api/lookup", {
@@ -521,6 +522,9 @@ form.addEventListener("submit", async (e) => {
     renderTakeover(data.takeover || []);
     renderErrors(data.errors || {});
     buildSummary(data);
+
+    const elapsed = ((performance.now() - _t0) / 1000).toFixed(2);
+    document.getElementById("result-timer").textContent = `${elapsed}s`;
 
     show(results);
   } catch (err) {
