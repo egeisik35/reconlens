@@ -116,6 +116,10 @@ def check_takeovers(subdomains: list[str]) -> list[dict]:
         if probed >= _MAX_PROBES:
             break
 
+        # Skip email addresses that leaked into CT logs (contain @)
+        if "@" in sub:
+            continue
+
         # Skip internal subdomains
         if any(f".{pat}" in sub or sub.startswith(pat) for pat in _INTERNAL):
             continue
@@ -123,18 +127,9 @@ def check_takeovers(subdomains: list[str]) -> list[dict]:
         try:
             cname, nxdomain = _resolve_cname_chain(sub)
 
-            if nxdomain:
-                findings.append({
-                    "subdomain": sub,
-                    "cname":     None,
-                    "service":   None,
-                    "status":    "dangling",
-                    "severity":  "medium",
-                    "detail":    "No DNS record exists — dangling DNS entry.",
-                })
-                probed += 1
-                continue
-
+            # Bare NXDOMAIN (no CNAME) is not a takeover risk — the subdomain
+            # simply doesn't exist. A takeover requires a CNAME pointing to an
+            # unclaimed third-party service.
             if not cname:
                 probed += 1
                 continue

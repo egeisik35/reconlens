@@ -440,8 +440,9 @@ function _checkBlacklists(ipRep) {
 }
 
 function _checkDmarc(dns) {
-  const txt = (dns.TXT || []).join(" ").toLowerCase();
-  if (txt.includes("v=dmarc1")) return { status: "ok",   label: "DMARC — Present" };
+  // DMARC is at _dmarc.<domain>, returned separately from root TXT records
+  const dmarc = (dns.DMARC || []).join(" ").toLowerCase();
+  if (dmarc.includes("v=dmarc1")) return { status: "ok", label: "DMARC — Present" };
   return { status: "error", label: "DMARC — Missing" };
 }
 

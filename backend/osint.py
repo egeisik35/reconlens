@@ -83,6 +83,14 @@ def fetch_dns(domain: str) -> dict:
             records[rtype] = [str(r) for r in answers]
         except Exception:
             records[rtype] = []
+
+    # DMARC lives at _dmarc.<domain>, not the root domain
+    try:
+        answers = dns.resolver.resolve(f"_dmarc.{domain}", "TXT")
+        records["DMARC"] = [str(r) for r in answers]
+    except Exception:
+        records["DMARC"] = []
+
     return records
 
 
@@ -231,6 +239,9 @@ def fetch_ct_subdomains(domain: str) -> dict:
     for entry in entries:
         for name in entry.get("name_value", "").splitlines():
             name = name.strip().lstrip("*.").lower()
+            # Filter out email addresses that leak into CT logs via SAN fields
+            if "@" in name:
+                continue
             if name.endswith(f".{domain}") and name != domain:
                 subdomains.add(name)
 
