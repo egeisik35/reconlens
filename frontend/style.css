@@ -361,6 +361,7 @@ button[type="submit"]:disabled { opacity: 0.5; cursor: not-allowed; }
 .card-body {
   padding: 0.8rem 1rem;
   transition: height 0.2s;
+  overflow-x: auto;
 }
 
 .card-body.hidden { display: none; }
@@ -683,5 +684,33 @@ td:last-child {
 .check-name { font-weight: 600; }
 .check-desc { color: var(--text-dim); font-size: 0.75rem; }
 .check-missing { color: #8b949e; font-size: 0.72rem; font-style: italic; }
+
+/* ── Mobile ──────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  body { font-size: 13px; }
+
+  .container { padding: 0.75rem; }
+
+  header h1 { font-size: 1.4rem; }
+
+  .result-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .result-actions { width: 100%; display: flex; gap: 0.5rem; }
+  .export-btn, .watch-shortcut-btn { flex: 1; font-size: 0.75rem; padding: 0.4rem 0.5rem; }
+
+  td:first-child { width: 110px; font-size: 0.75rem; }
+  td:last-child  { font-size: 0.75rem; }
+
+  .summary-checks { grid-template-columns: 1fr; }
+
+  .headers-grade-wrap { gap: 0.75rem; }
+  .grade-letter { font-size: 2.5rem; }
+
+  .watch-card { flex-direction: column; gap: 0.75rem; }
+  .watch-form-row { flex-direction: column; }
+  .watch-form-row input, .watch-form-row button { width: 100%; }
+
+  .result-domain-row { flex-wrap: wrap; gap: 0.3rem; }
+}
 
 .hidden { display: none; }

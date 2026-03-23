@@ -129,6 +129,10 @@ def fetch_headers(domain: str) -> dict:
 
 _DNSBLS = ["zen.spamhaus.org", "bl.spamcop.net"]
 
+# Spamhaus returns these IPs when it rate-limits or blocks the querying host.
+# They look like a valid "listed" response but are actually error codes.
+_DNSBL_ERROR_IPS = {"127.255.255.254", "127.255.255.255"}
+
 
 def _fetch_geo(ip: str) -> dict:
     """Query ip-api.com (free tier, no key) for geolocation and network info."""
@@ -171,8 +175,11 @@ def _check_dnsbl(ip: str) -> dict:
     results = {}
     for bl in _DNSBLS:
         try:
-            dns.resolver.resolve(f"{reversed_ip}.{bl}", "A")
-            results[bl] = "listed"
+            answers = dns.resolver.resolve(f"{reversed_ip}.{bl}", "A")
+            # Only count as listed if the returned IP is a genuine listing,
+            # not a Spamhaus error code (rate-limited / querying host blocked).
+            genuine = [str(r) for r in answers if str(r) not in _DNSBL_ERROR_IPS]
+            results[bl] = "listed" if genuine else "error"
         except dns.resolver.NXDOMAIN:
             results[bl] = "clean"
         except Exception:
