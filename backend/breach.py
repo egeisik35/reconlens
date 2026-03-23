@@ -26,10 +26,7 @@ def fetch_breaches(domain: str) -> list[dict]:
         resp = requests.get(
             _HIBP_URL,
             params={"domain": domain},
-            headers={
-                "User-Agent": _USER_AGENT,
-                "hibp-api-key": "",   # not required for this endpoint
-            },
+            headers={"User-Agent": _USER_AGENT},
             timeout=_TIMEOUT,
         )
 

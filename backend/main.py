@@ -159,11 +159,13 @@ async def export_pdf(request: Request, req: ExportRequest):
 @limiter.limit("3/minute")
 async def watch(request: Request, req: WatchRequest):
     conn = get_conn()
-    existing = conn.execute(
-        "SELECT id FROM monitors WHERE domain=? AND email=?",
-        (req.domain, req.email),
-    ).fetchone()
-    conn.close()
+    try:
+        existing = conn.execute(
+            "SELECT id FROM monitors WHERE domain=? AND email=?",
+            (req.domain, req.email),
+        ).fetchone()
+    finally:
+        conn.close()
 
     if existing:
         return {"message": f"Already watching {req.domain} for {req.email}."}
@@ -178,13 +180,15 @@ async def watch(request: Request, req: WatchRequest):
         raise HTTPException(status_code=500, detail="Could not snapshot domain. Please try again.")
 
     conn = get_conn()
-    conn.execute(
-        "INSERT INTO monitors (id, domain, email, created_at, last_checked, snapshot) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (monitor_id, req.domain, req.email, now, now, json.dumps(snapshot)),
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            "INSERT INTO monitors (id, domain, email, created_at, last_checked, snapshot) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (monitor_id, req.domain, req.email, now, now, json.dumps(snapshot)),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
     email_error = None
     try:
@@ -208,24 +212,25 @@ async def unwatch(request: Request, id: str):
         raise HTTPException(status_code=400, detail="Invalid monitor ID.")
 
     conn = get_conn()
-    row = conn.execute(
-        "SELECT domain, email FROM monitors WHERE id=?", (id,)
-    ).fetchone()
+    try:
+        row = conn.execute(
+            "SELECT domain, email FROM monitors WHERE id=?", (id,)
+        ).fetchone()
 
-    if not row:
+        if not row:
+            return HTMLResponse(
+                "<html><body style='font-family:monospace;padding:40px'>"
+                "<h2>Not found</h2><p>This monitor doesn't exist or was already removed.</p>"
+                "</body></html>",
+                status_code=404,
+            )
+
+        domain = html.escape(row["domain"])
+        email  = html.escape(row["email"])
+        conn.execute("DELETE FROM monitors WHERE id=?", (id,))
+        conn.commit()
+    finally:
         conn.close()
-        return HTMLResponse(
-            "<html><body style='font-family:monospace;padding:40px'>"
-            "<h2>Not found</h2><p>This monitor doesn't exist or was already removed.</p>"
-            "</body></html>",
-            status_code=404,
-        )
-
-    domain = html.escape(row["domain"])
-    email  = html.escape(row["email"])
-    conn.execute("DELETE FROM monitors WHERE id=?", (id,))
-    conn.commit()
-    conn.close()
 
     return HTMLResponse(f"""
         <html><head><title>Unsubscribed</title></head>
